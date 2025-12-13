@@ -1,0 +1,21 @@
+.small-profile {
+  width: 2rem; /* small square by default (~32px if root font-size is 16px) */
+  height: 2rem;
+  object-fit: cover;
+  border-radius: 0; /* square */
+  display: inline-block;
+  border: 1px solid transparent; /* change if you want a visible border */
+}
+
+.header-border {
+  border: 1px solid #f1a0a0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .small-profile {
+    width: 8rem; /* slightly larger on wider screens */
+    height: 12rem;
+  }
+}
