@@ -7,17 +7,27 @@ const About: React.FC = () => {
         <div className="row">
           <div className="col-lg-8 mx-auto text-center">
             <h2 className="mb-4">About Me</h2>
+
+            {/* About Me Card */}
             <div className="card mb-4">
               <div className="card-body">
                 <p className="lead">
-                  I'm a passionate developer with experience in creating web
-                  applications. I love turning ideas into reality through code
-                  and design.
+                  I’m a developer with experience in web development, mobile
+                  applications, game development, software development, and 3D
+                  design.
                 </p>
                 <p>
-                  With a background in computer science and a keen interest in
-                  emerging technologies, I strive to build efficient,
-                  user-friendly solutions that make a difference.
+                  I enjoy learning new technologies and applying what I know to
+                  create useful and engaging solutions. Working with different
+                  stacks has helped me understand how ideas move from concept
+                  to implementation across various platforms.
+                </p>
+                <p>
+                  I’m especially interested in building projects that are
+                  practical, user-friendly, and well-structured. Whether it’s
+                  a small personal project or a larger application, I value
+                  clean code, thoughtful design, and continuous improvement
+                  through hands-on experience.
                 </p>
               </div>
             </div>
@@ -54,6 +64,7 @@ const About: React.FC = () => {
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>

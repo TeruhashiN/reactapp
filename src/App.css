@@ -15,7 +15,7 @@
 
 @media (min-width: 768px) {
   .small-profile {
-    width: 8rem; /* slightly larger on wider screens */
+    width: 11rem; /* slightly larger on wider screens */
     height: 12rem;
   }
 }
