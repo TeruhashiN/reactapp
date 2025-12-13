@@ -2,6 +2,7 @@ import React from "react";
 import "./App.css";
 import Header from "./components/Header";
 import About from "./components/About";
+import Skills from "./components/skills";
 import Experience from "./components/Experience";
 import Projects from "./components/Projects";
 import Certifications from "./components/Certifications";
@@ -12,6 +13,7 @@ function App() {
     <div className="App">
       <Header />
       <About />
+      <Skills/>
       <Experience />
       <Projects />
       <Certifications />
