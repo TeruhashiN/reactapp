@@ -55,7 +55,7 @@ const Experience: React.FC = () => {
                 <div className="col-md-8">
                   <h5 className="card-title">
                     Software Developer | Web Developer | Mobile Application Developer | Game
-                    Developer | 3D Designer
+                    Developer | 3D Designer |
                   </h5>
                   <h6 className="text-primary">
                     Freelance Projects & Confidential Business Clients | June 2022 – Present
