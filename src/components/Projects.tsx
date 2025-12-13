@@ -65,13 +65,13 @@ const Projects: React.FC = () => {
         <div className="row">
           {projects.map((project, index) => (
             <div key={index} className="col-md-6 col-lg-4 mb-4">
-              <div className="card h-100">
+              <div className="section-border h-100 d-flex flex-column">
                 <img
                   src={project.image}
                   className="card-img-top"
                   alt={project.title}
                 />
-                <div className="card-body d-flex flex-column">
+                <div className="d-flex flex-column flex-grow-1">
                   <h5 className="card-title">{project.title}</h5>
                   <p className="card-text">{project.description}</p>
 

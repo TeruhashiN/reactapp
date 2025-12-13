@@ -8,36 +8,37 @@ const Experience: React.FC = () => {
         <div className="row">
           <div className="col-lg-10 mx-auto">
             {/* Experience Item 1 */}
-            <div className="card mb-4">
-              <div className="card-body">
-                <div className="row">
-                  <div className="col-md-8">
-                    <h5 className="card-title">Full Stack Developer</h5>
-                    <h6 className="text-primary">Local Government Talisay - Internship| February 2025 - May 2025</h6>
-                    <ul className="mt-3">
-                      <li>
-                        Developed responsive web applications from concept to
-                        deployment
-                      </li>
-                      <li>
-                        Built RESTful APIs and integrated third-party services
-                      </li>
-                      <li>
-                        Optimized application performance and user experience
-                      </li>
-                      <li>
-                        Participated in agile development processes and sprint
-                        planning
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="col-md-4">
-                    <span className="badge bg-success mb-2">HTML</span>
-                    <span className="badge bg-success mb-2">CSS</span>
-                    <span className="badge bg-success mb-2">JavaScript</span>
-                    <span className="badge bg-success mb-2">PHP</span>
-                    <span className="badge bg-success mb-2">MongoDB</span>
-                  </div>
+            <div className="section-border mb-4">
+              <div className="row">
+                <div className="col-md-8">
+                  <h5 className="card-title">Full Stack Developer</h5>
+                  <h6 className="text-primary">
+                    Local Government Talisay - Internship| February 2025 - May
+                    2025
+                  </h6>
+                  <ul className="mt-3">
+                    <li>
+                      Developed responsive web applications from concept to
+                      deployment
+                    </li>
+                    <li>
+                      Built RESTful APIs and integrated third-party services
+                    </li>
+                    <li>
+                      Optimized application performance and user experience
+                    </li>
+                    <li>
+                      Participated in agile development processes and sprint
+                      planning
+                    </li>
+                  </ul>
+                </div>
+                <div className="col-md-4">
+                  <span className="badge bg-success mb-2">HTML</span>
+                  <span className="badge bg-success mb-2">CSS</span>
+                  <span className="badge bg-success mb-2">JavaScript</span>
+                  <span className="badge bg-success mb-2">PHP</span>
+                  <span className="badge bg-success mb-2">MongoDB</span>
                 </div>
               </div>
             </div>
@@ -62,7 +63,7 @@ const Experience: React.FC = () => {
                     </div>
                     <div className="col-md-4">
                       <span className="badge bg-warning text-dark mb-2">
-                        GWA: 1.7 
+                        GWA: 1.7
                       </span>
                     </div>
                   </div>
