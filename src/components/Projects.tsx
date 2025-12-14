@@ -12,21 +12,21 @@ const Projects: React.FC = () => {
       githubUrl: "#",
     },
     {
-      title: "Task Management App",
+      title: "JourneyBox",
       description:
-        "A collaborative task management application with real-time updates, drag-and-drop functionality, and team collaboration features.",
-      image: "https://via.placeholder.com/400x250",
-      technologies: ["Vue.js", "Express", "Socket.io", "PostgreSQL"],
-      liveUrl: "#",
+        "JourneyBox is a smart offline travel companion that lets users track trips, store travel details, and preserve memories securely—even without internet access.",
+      image: "./src/assets/drive.png",
+      technologies: ["Flutter", "Dart"],
+      liveUrl: "https://www.linkedin.com/feed/update/urn:li:activity:7391098451155079168/",
       githubUrl: "#",
     },
     {
-      title: "Weather Dashboard",
+      title: "DriveWise: 3D Driving Simulation",
       description:
-        "A responsive weather application that provides current weather conditions and forecasts using external APIs.",
-      image: "https://via.placeholder.com/400x250",
-      technologies: ["JavaScript", "REST API", "CSS3", "Webpack"],
-      liveUrl: "#",
+        "A 3D driving simulation capstone project featuring a manual car system with steering wheel controls, built using Unreal Engine and 3ds Max. The simulation recreates a subdivision and central Daet, Camarines Norte, showcasing local landmarks through an immersive driving experience.",
+      image: "./src/assets/drive.png",
+      technologies: ["Unreal Engine", "Blueprint Visual Scripting", "3Ds Max"],
+      liveUrl: "https://www.linkedin.com/feed/update/urn:li:activity:7275130093692174336/",
       githubUrl: "#",
     },
     {
