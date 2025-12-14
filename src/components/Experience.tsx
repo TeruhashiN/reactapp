@@ -95,6 +95,7 @@ const Experience: React.FC = () => {
                   <span className="badge bg-success mb-2 me-1">Python</span>
                   <span className="badge bg-success mb-2 me-1">C++</span>
                   <span className="badge bg-success mb-2 me-1">C#</span>
+                  <span className="badge bg-success mb-2 me-1">VisualBasic</span>
                   <span className="badge bg-success mb-2 me-1">Java</span>
                   <span className="badge bg-success mb-2 me-1">HTML</span>
                   <span className="badge bg-success mb-2 me-1">CSS</span>

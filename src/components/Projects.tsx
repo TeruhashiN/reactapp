@@ -3,12 +3,12 @@ import React from "react";
 const Projects: React.FC = () => {
   const projects = [
     {
-      title: "E-Commerce Platform",
+      title: "TrabTrack",
       description:
-        "A full-stack e-commerce solution with React frontend and Node.js backend, featuring user authentication, payment integration, and admin dashboard.",
-      image: "https://via.placeholder.com/400x250",
-      technologies: ["React", "Node.js", "MongoDB", "Stripe API"],
-      liveUrl: "#",
+        "TrabTrack is a free web-based job application tracker that helps users organize and monitor their job search in one place. It provides a centralized dashboard showing application statuses, activity history, progress tracking, and upcoming interviews. Users can easily add, edit, and delete job entries, while the Job Hunt section offers links to popular job search platforms to discover new opportunities.",
+      image: "./src/assets/jobtrack.png",
+      technologies: ["HTML", "CSS", "Javascript", "PHP", "Bootstrap"],
+      liveUrl: "https://trabtrack.com/",
       githubUrl: "#",
     },
     {
@@ -89,12 +89,19 @@ const Projects: React.FC = () => {
 
                   {/* Action Buttons */}
                   <div className="mt-auto">
-                    <a href={project.liveUrl} className="btn btn-primary me-2">
+                    <a
+                      href={project.liveUrl}
+                      className="btn btn-primary me-2"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       Live Demo
                     </a>
                     <a
                       href={project.githubUrl}
                       className="btn btn-outline-secondary"
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
                       GitHub
                     </a>
