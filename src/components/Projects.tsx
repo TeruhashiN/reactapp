@@ -17,7 +17,8 @@ const Projects: React.FC = () => {
         "JourneyBox is a smart offline travel companion that lets users track trips, store travel details, and preserve memories securely—even without internet access.",
       image: "./src/assets/drive.png",
       technologies: ["Flutter", "Dart"],
-      liveUrl: "https://www.linkedin.com/feed/update/urn:li:activity:7391098451155079168/",
+      liveUrl:
+        "https://www.linkedin.com/feed/update/urn:li:activity:7391098451155079168/",
       githubUrl: "#",
     },
     {
@@ -26,7 +27,8 @@ const Projects: React.FC = () => {
         "A 3D driving simulation capstone project featuring a manual car system with steering wheel controls, built using Unreal Engine and 3ds Max. The simulation recreates a subdivision and central Daet, Camarines Norte, showcasing local landmarks through an immersive driving experience.",
       image: "./src/assets/drive.png",
       technologies: ["Unreal Engine", "Blueprint Visual Scripting", "3Ds Max"],
-      liveUrl: "https://www.linkedin.com/feed/update/urn:li:activity:7275130093692174336/",
+      liveUrl:
+        "https://www.linkedin.com/feed/update/urn:li:activity:7275130093692174336/",
       githubUrl: "#",
     },
     {
@@ -70,6 +72,12 @@ const Projects: React.FC = () => {
                   src={project.image}
                   className="card-img-top"
                   alt={project.title}
+                  style={{
+                    width: "100%",
+                    height: "250px",
+                    objectFit: "cover",
+                    objectPosition: "center",
+                  }}
                 />
                 <div className="d-flex flex-column flex-grow-1">
                   <h5 className="card-title">{project.title}</h5>
