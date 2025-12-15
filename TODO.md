@@ -1,3 +1,11 @@
-# TODO List for Centering Header Name and Lead
+# Footer Improvement Tasks
 
-- [x] Edit src/components/Header.tsx: Add "text-center" to the className of the left div (col-lg-6) to center the h1 and p elements.
+- [x] Adjust layout and spacing for better balance and responsiveness
+- [x] Standardize typography (headings, text weights)
+- [x] Enhance colors and styling (add gradient, border-top)
+- [x] Replace social emojis with professional text/icons
+- [x] Remove contact form and keep contact info
+- [x] Add "Back to Top" button
+- [x] Improve accessibility with ARIA labels
+- [x] Add small logo if available (skipped - no logo available)
+- [ ] Test the footer appearance in dev server
