@@ -100,7 +100,7 @@ const Footer: React.FC = () => {
         <hr className="my-4 border-secondary" />
         <div className="row align-items-center">
           <div className="col-md-6">
-            <p className="mb-0">&copy; 2024 Your Name. All rights reserved.</p>
+            <p className="mb-0">&copy; 2025 Brylle Justin Lara Heraldo. All rights reserved.</p>
           </div>
           <div className="col-md-6 text-md-end">
             <button
