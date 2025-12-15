@@ -2,10 +2,22 @@ import React from "react";
 
 const Footer: React.FC = () => {
   const socialLinks = [
-    { name: "LinkedIn", url: "#", text: "LinkedIn" },
-    { name: "GitHub", url: "#", text: "GitHub" },
-    { name: "Twitter", url: "#", text: "Twitter" },
-    { name: "Email", url: "mailto:your.email@example.com", text: "Email" },
+    {
+      name: "LinkedIn",
+      url: "https://www.linkedin.com/in/brylle-justin-heraldo-5527802ba/",
+      text: "LinkedIn",
+    },
+    { name: "GitHub", url: "https://github.com/TeruhashiN", text: "GitHub" },
+    {
+      name: "TikTok",
+      url: "https://www.tiktok.com/@justinteruh?lang=en",
+      text: "TikTok",
+    },
+    {
+      name: "Facebook",
+      url: "https://www.facebook.com/BrylleJustin.Chi",
+      text: "Facebook",
+    },
   ];
 
   const quickLinks = [
@@ -77,7 +89,7 @@ const Footer: React.FC = () => {
                 bryllejheraldo@gmail.com
               </a>
               <br />
-              <strong>Phone:</strong> +63 9850703940 
+              <strong>Phone:</strong> +63 9850703940
               <br />
               <strong>Location:</strong> Camarines Norte, Philippines
             </p>
