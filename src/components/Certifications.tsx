@@ -99,7 +99,7 @@ const Certifications: React.FC = () => {
         <div className="mt-5">
           <h3 className="text-center mb-4">Additional Achievements</h3>
           <div className="row">
-            <div className="col-lg-8 mx-auto">
+            <div className="col-lg-12 mx-auto">
               <ul className="list-group list-group-flush">
                 <li className="list-group-item d-flex justify-content-between align-items-center">
                   <span>
