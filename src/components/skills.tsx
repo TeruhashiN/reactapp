@@ -5,7 +5,7 @@ const Skills: React.FC = () => {
     <section id="skills" className="py-5">
       <div className="container">
         <div className="row">
-          <div className="col-lg-8 mx-auto text-center">
+          <div className="col-lg-12 mx-auto text-center">
             <h2 className="mb-4">Tech Stack</h2>
             <div className="section-border">
               <div className="row">

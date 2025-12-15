@@ -6,7 +6,7 @@ const Experience: React.FC = () => {
       <div className="container">
         <h2 className="text-center mb-5">Professional Experience</h2>
         <div className="row">
-          <div className="col-lg-10 mx-auto">
+          <div className="col-12">
             {/* Experience Item 1 */}
             <div className="section-border mb-4">
               <div className="row">

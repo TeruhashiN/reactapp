@@ -5,7 +5,7 @@ const About: React.FC = () => {
     <section id="about" className="py-5">
       <div className="container">
         <div className="row">
-          <div className="col-lg-8 mx-auto text-center">
+          <div className="col-lg-12 mx-auto text-center">
             <h2 className="mb-4">About Me</h2>
 
             {/* About Me Card */}
