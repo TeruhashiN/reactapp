@@ -32,7 +32,10 @@ const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="bg-dark text-white py-4 border-top border-secondary">
+    <footer
+      id="footer"
+      className="bg-dark text-white py-4 border-top border-secondary"
+    >
       <div className="container">
         <div className="row">
           {/* About Section */}
@@ -100,7 +103,9 @@ const Footer: React.FC = () => {
         <hr className="my-4 border-secondary" />
         <div className="row align-items-center">
           <div className="col-md-6">
-            <p className="mb-0">&copy; 2025 Brylle Justin Lara Heraldo. All rights reserved.</p>
+            <p className="mb-0">
+              &copy; 2025 Brylle Justin Lara Heraldo. All rights reserved.
+            </p>
           </div>
           <div className="col-md-6 text-md-end">
             <button
