@@ -103,29 +103,29 @@ const Certifications: React.FC = () => {
               <ul className="list-group list-group-flush">
                 <li className="list-group-item d-flex justify-content-between align-items-center">
                   <span>
-                    🏆 Winner - Best Web Application (Tech Conference 2023)
+                    🖼️ LOFTIA Fanart Competition - 3D Design 
                   </span>
-                  <span className="badge bg-primary rounded-pill">2023</span>
+                  <span className="badge bg-primary rounded-pill">2025</span>
                 </li>
                 <li className="list-group-item d-flex justify-content-between align-items-center">
-                  <span>📝 Published 5+ technical articles on Medium</span>
+                  <span>📝 3D Game Development </span>
                   <span className="badge bg-success rounded-pill">
-                    2022-2023
+                    2024
                   </span>
                 </li>
                 <li className="list-group-item d-flex justify-content-between align-items-center">
-                  <span>🎯 100+ GitHub contributions in the last year</span>
+                  <span>🎯 Python Programming Competition</span>
                   <span className="badge bg-info rounded-pill">2023</span>
                 </li>
                 <li className="list-group-item d-flex justify-content-between align-items-center">
-                  <span>👥 Mentored 10+ junior developers</span>
+                  <span>👥 Dean's Lister</span>
                   <span className="badge bg-warning text-dark rounded-pill">
-                    2022-2023
+                    2023
                   </span>
                 </li>
                 <li className="list-group-item d-flex justify-content-between align-items-center">
-                  <span>🎤 Speaker at 3 tech meetups</span>
-                  <span className="badge bg-secondary rounded-pill">2023</span>
+                  <span>🎤 Design Expo 2022</span>
+                  <span className="badge bg-secondary rounded-pill">2022</span>
                 </li>
               </ul>
             </div>
