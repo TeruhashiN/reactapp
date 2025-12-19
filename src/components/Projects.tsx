@@ -32,20 +32,20 @@ const Projects: React.FC = () => {
       githubUrl: "#",
     },
     {
+      title: "Leave Tracking System for HR",
+      description:
+        "The Leave Tracking System is a web-based, paperless solution for LGU-Talisay’s HRMO that streamlines the management of employee leave and travel applications. It enables efficient record-keeping, automated reports, printable forms, and calendar-based tracking, improving accuracy, transparency, and overall HR operations.",
+      image: "./src/assets/LTrack.png",
+      technologies: ["HTML", "CSS", "Bootstrap", "Javascript", "PHP", "MySQL"],
+      liveUrl: "#",
+      githubUrl: "#",
+    },
+    {
       title: "Portfolio Website",
       description:
         "A modern, responsive portfolio website built with React and Bootstrap, featuring smooth animations and optimized performance.",
       image: "https://via.placeholder.com/400x250",
       technologies: ["React", "Bootstrap", "TypeScript", "Vite"],
-      liveUrl: "#",
-      githubUrl: "#",
-    },
-    {
-      title: "Chat Application",
-      description:
-        "A real-time chat application with user authentication, private messaging, and group chat functionality.",
-      image: "https://via.placeholder.com/400x250",
-      technologies: ["React", "Firebase", "Material-UI", "WebSocket"],
       liveUrl: "#",
       githubUrl: "#",
     },
