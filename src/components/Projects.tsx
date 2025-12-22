@@ -15,7 +15,7 @@ const Projects: React.FC = () => {
       title: "JourneyBox",
       description:
         "JourneyBox is a smart offline travel companion that lets users track trips, store travel details, and preserve memories securely—even without internet access.",
-      image: "./src/assets/drive.png",
+      image: "./src/assets/journeyboxs.png",
       technologies: ["Flutter", "Dart"],
       liveUrl:
         "https://www.linkedin.com/feed/update/urn:li:activity:7391098451155079168/",
@@ -75,7 +75,7 @@ const Projects: React.FC = () => {
                   style={{
                     width: "100%",
                     height: "250px",
-                    objectFit: "cover",
+                    objectFit: "contain",
                     objectPosition: "center",
                   }}
                 />
