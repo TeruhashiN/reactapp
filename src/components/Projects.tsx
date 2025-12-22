@@ -1,18 +1,68 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const Projects: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   const handleProjectClick = (project: any) => {
     setSelectedProject(project);
     setShowModal(true);
+    setCurrentSlide(0);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedProject(null);
+    setCurrentSlide(0);
   };
+
+  const nextSlide = () => {
+    if (selectedProject) {
+      setCurrentSlide((prev) => 
+        prev === selectedProject.images.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  const prevSlide = () => {
+    if (selectedProject) {
+      setCurrentSlide((prev) => 
+        prev === 0 ? selectedProject.images.length - 1 : prev - 1
+      );
+    }
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+  };
+
+  const hoverStyles = `
+    .project-card:hover {
+      transform: scale(1.05);
+      transition: transform 0.2s;
+    }
+    
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      padding: 20px;
+    }
+    
+    .carousel-control-prev:hover .carousel-control-prev-icon,
+    .carousel-control-next:hover .carousel-control-next-icon {
+      background-color: rgba(0, 0, 0, 0.9);
+    }
+    
+    .carousel-indicators button {
+      background-color: rgba(0, 0, 0, 0.5) !important;
+    }
+    
+    .carousel-indicators button.active {
+      background-color: rgba(0, 0, 0, 0.9) !important;
+    }
+  `;
 
   const projects = [
     {
@@ -26,8 +76,8 @@ const Projects: React.FC = () => {
       collaboration: "Solo Project",
       images: [
         "./src/assets/jobtrack.png",
-        "https://via.placeholder.com/400x250",
-        "https://via.placeholder.com/400x250",
+        "https://via.placeholder.com/400x250/FF6B6B/FFFFFF?text=TrabTrack+Dashboard",
+        "https://via.placeholder.com/400x250/4ECDC4/FFFFFF?text=TrabTrack+Analytics",
       ],
     },
     {
@@ -42,8 +92,8 @@ const Projects: React.FC = () => {
       collaboration: "Solo Project",
       images: [
         "./src/assets/journeyboxs.png",
-        "https://via.placeholder.com/400x250",
-        "https://via.placeholder.com/400x250",
+        "https://via.placeholder.com/400x250/95E1D3/FFFFFF?text=JourneyBox+Map",
+        "https://via.placeholder.com/400x250/F38181/FFFFFF?text=JourneyBox+Memories",
       ],
     },
     {
@@ -58,14 +108,14 @@ const Projects: React.FC = () => {
       collaboration: "Team Project",
       images: [
         "./src/assets/drive.png",
-        "https://via.placeholder.com/400x250",
-        "https://via.placeholder.com/400x250",
+        "https://via.placeholder.com/400x250/AA96DA/FFFFFF?text=DriveWise+Gameplay",
+        "https://via.placeholder.com/400x250/FCBAD3/FFFFFF?text=DriveWise+Map",
       ],
     },
     {
       title: "Leave Tracking System for HR",
       description:
-        "The Leave Tracking System is a web-based, paperless solution for LGU-Talisay’s HRMO that streamlines the management of employee leave and travel applications. It enables efficient record-keeping, automated reports, printable forms, and calendar-based tracking, improving accuracy, transparency, and overall HR operations.",
+        "The Leave Tracking System is a web-based, paperless solution for LGU-Talisay's HRMO that streamlines the management of employee leave and travel applications. It enables efficient record-keeping, automated reports, printable forms, and calendar-based tracking, improving accuracy, transparency, and overall HR operations.",
       image: "./src/assets/LTrack.png",
       technologies: ["HTML", "CSS", "Bootstrap", "Javascript", "PHP", "MySQL"],
       liveUrl: "#",
@@ -73,45 +123,52 @@ const Projects: React.FC = () => {
       collaboration: "Team Project",
       images: [
         "./src/assets/LTrack.png",
-        "https://via.placeholder.com/400x250",
-        "https://via.placeholder.com/400x250",
+        "./src/assets/drive.png",
+        "https://via.placeholder.com/400x250/A8D8EA/FFFFFF?text=Leave+Reports",
       ],
     },
     {
       title: "Portfolio Website",
       description:
         "A modern, responsive portfolio website built with React and Bootstrap, featuring smooth animations and optimized performance.",
-      image: "https://via.placeholder.com/400x250",
+      image: "https://via.placeholder.com/400x250/FFD93D/333333?text=Portfolio",
       technologies: ["React", "Bootstrap", "TypeScript", "Vite"],
       liveUrl: "#",
       githubUrl: "#",
       collaboration: "Solo Project",
       images: [
-        "https://via.placeholder.com/400x250",
-        "https://via.placeholder.com/400x250",
-        "https://via.placeholder.com/400x250",
+        "https://via.placeholder.com/400x250/FFD93D/333333?text=Portfolio+Home",
+        "https://via.placeholder.com/400x250/6BCB77/FFFFFF?text=Portfolio+Projects",
+        "https://via.placeholder.com/400x250/4D96FF/FFFFFF?text=Portfolio+Contact",
       ],
     },
     {
       title: "Data Visualization Tool",
       description:
         "An interactive data visualization dashboard for business analytics with customizable charts and reporting features.",
-      image: "https://via.placeholder.com/400x250",
+      image: "https://via.placeholder.com/400x250/C780FA/FFFFFF?text=Data+Viz",
       technologies: ["D3.js", "React", "Python", "Flask"],
       liveUrl: "#",
       githubUrl: "#",
+      collaboration: "Team Project",
+      images: [
+        "https://via.placeholder.com/400x250/C780FA/FFFFFF?text=Dashboard",
+        "https://via.placeholder.com/400x250/FF6B9D/FFFFFF?text=Analytics",
+        "https://via.placeholder.com/400x250/FFC75F/333333?text=Reports",
+      ],
     },
   ];
 
   return (
     <section id="projects" className="py-5">
+      <style>{hoverStyles}</style>
       <div className="container">
         <h2 className="text-center mb-5">Featured Projects</h2>
         <div className="row">
           {projects.map((project, index) => (
             <div key={index} className="col-md-6 col-lg-4 mb-4">
               <div
-                className="section-border h-100 d-flex flex-column"
+                className="section-border h-100 d-flex flex-column project-card"
                 onClick={() => handleProjectClick(project)}
                 style={{ cursor: "pointer" }}
               >
@@ -126,7 +183,7 @@ const Projects: React.FC = () => {
                     objectPosition: "center",
                   }}
                 />
-                <div className="d-flex flex-column flex-grow-1">
+                <div className="d-flex flex-column flex-grow-1 p-3">
                   <h5 className="card-title">{project.title}</h5>
                   <p className="card-text">{project.description}</p>
 
@@ -193,40 +250,48 @@ const Projects: React.FC = () => {
                   ></button>
                 </div>
                 <div className="modal-body">
-                  {/* Carousel */}
-                  <div
-                    id="projectCarousel"
-                    className="carousel slide"
-                    data-bs-ride="carousel"
-                  >
-                    <div className="carousel-inner">
-                      {selectedProject.images.map(
-                        (img: string, imgIndex: number) => (
-                          <div
-                            key={imgIndex}
-                            className={`carousel-item ${
-                              imgIndex === 0 ? "active" : ""
-                            }`}
-                          >
-                            <img
-                              src={img}
-                              className="d-block w-100"
-                              alt={`Slide ${imgIndex + 1}`}
-                              style={{
-                                height: "300px",
-                                objectFit: "contain",
-                                objectPosition: "center",
-                              }}
-                            />
-                          </div>
-                        )
-                      )}
+                  {/* Custom Carousel */}
+                  <div className="carousel slide position-relative" style={{ backgroundColor: "#f8f9fa" }}>
+                    {/* Carousel Indicators */}
+                    <div className="carousel-indicators">
+                      {selectedProject.images.map((_: string, imgIndex: number) => (
+                        <button
+                          key={imgIndex}
+                          type="button"
+                          onClick={() => goToSlide(imgIndex)}
+                          className={imgIndex === currentSlide ? "active" : ""}
+                          aria-current={imgIndex === currentSlide ? "true" : "false"}
+                          aria-label={`Slide ${imgIndex + 1}`}
+                        ></button>
+                      ))}
                     </div>
+
+                    {/* Carousel Inner */}
+                    <div className="carousel-inner">
+                      {selectedProject.images.map((img: string, imgIndex: number) => (
+                        <div
+                          key={imgIndex}
+                          className={`carousel-item ${imgIndex === currentSlide ? "active" : ""}`}
+                        >
+                          <img
+                            src={img}
+                            className="d-block w-100"
+                            alt={`Slide ${imgIndex + 1}`}
+                            style={{
+                              height: "300px",
+                              objectFit: "contain",
+                              objectPosition: "center",
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Carousel Controls */}
                     <button
                       className="carousel-control-prev"
                       type="button"
-                      data-bs-target="#projectCarousel"
-                      data-bs-slide="prev"
+                      onClick={prevSlide}
                     >
                       <span
                         className="carousel-control-prev-icon"
@@ -237,8 +302,7 @@ const Projects: React.FC = () => {
                     <button
                       className="carousel-control-next"
                       type="button"
-                      data-bs-target="#projectCarousel"
-                      data-bs-slide="next"
+                      onClick={nextSlide}
                     >
                       <span
                         className="carousel-control-next-icon"
