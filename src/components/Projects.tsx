@@ -69,15 +69,15 @@ const Projects: React.FC = () => {
       title: "TrabTrack",
       description:
         "TrabTrack is a free web-based job application tracker that helps users organize and monitor their job search in one place. It provides a centralized dashboard showing application statuses, activity history, progress tracking, and upcoming interviews. Users can easily add, edit, and delete job entries, while the Job Hunt section offers links to popular job search platforms to discover new opportunities.",
-      image: "./src/assets/jobtrack.png",
+      image: "./src/assets/jobtracker.png",
       technologies: ["HTML", "CSS", "Javascript", "PHP", "Bootstrap"],
       liveUrl: "https://trabtrack.com/",
       githubUrl: "#",
       collaboration: "Solo Project",
       images: [
-        "./src/assets/jobtrack.png",
-        "https://via.placeholder.com/400x250/FF6B6B/FFFFFF?text=TrabTrack+Dashboard",
-        "https://via.placeholder.com/400x250/4ECDC4/FFFFFF?text=TrabTrack+Analytics",
+        "./src/assets/trabtrack/trab1.jpeg",
+        "./src/assets/trabtrack/trab2.jpeg",
+        "./src/assets/trabtrack/trab3.jpeg",
       ],
     },
     {
@@ -91,9 +91,13 @@ const Projects: React.FC = () => {
       githubUrl: "#",
       collaboration: "Solo Project",
       images: [
-        "./src/assets/journeyboxs.png",
-        "https://via.placeholder.com/400x250/95E1D3/FFFFFF?text=JourneyBox+Map",
-        "https://via.placeholder.com/400x250/F38181/FFFFFF?text=JourneyBox+Memories",
+        "./src/assets/journeybox/journ.jpeg",
+        "./src/assets/journeybox/journ2.jpeg",
+        "./src/assets/journeybox/journ3.jpeg",
+        "./src/assets/journeybox/journ4.jpeg",
+        "./src/assets/journeybox/journ5.jpeg",
+        "./src/assets/journeybox/journ6.jpeg",
+        "./src/assets/journeybox/journ7.jpeg",
       ],
     },
     {
@@ -108,8 +112,12 @@ const Projects: React.FC = () => {
       collaboration: "Team Project",
       images: [
         "./src/assets/drive.png",
-        "https://via.placeholder.com/400x250/AA96DA/FFFFFF?text=DriveWise+Gameplay",
-        "https://via.placeholder.com/400x250/FCBAD3/FFFFFF?text=DriveWise+Map",
+        "./src/assets/driving/drive7.jpeg",
+        "./src/assets/driving/drive2.jpeg",
+        "./src/assets/driving/drive3.jpeg",
+        "./src/assets/driving/drive4.jpeg",
+        "./src/assets/driving/drive5.jpeg",
+        "./src/assets/driving/drive6.jpeg",
       ],
     },
     {
