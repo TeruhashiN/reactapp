@@ -118,7 +118,7 @@ const Certifications: React.FC = () => {
                   <span className="badge bg-info rounded-pill">2023</span>
                 </li>
                 <li className="list-group-item d-flex justify-content-between align-items-center">
-                  <span>👥 Dean's Lister</span>
+                  <span>👥 Mobile App Competition</span>
                   <span className="badge bg-warning text-dark rounded-pill">
                     2023
                   </span>

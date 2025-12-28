@@ -134,8 +134,7 @@ const Experience: React.FC = () => {
                         Camarines Norte State College | 2021 - 2025
                       </h6>
                       <p className="mt-3">
-                        Graduated with honors, specializing in software
-                        engineering and web development.
+                        Graduated with a Bachelor of Science in Information Technology from Camarines Norte State College, achieving a 1.7 GWA. Developed strong foundations in software engineering, web development, and various modern technology stacks through academic projects and hands-on experience.
                       </p>
                     </div>
                     <div className="col-md-4">

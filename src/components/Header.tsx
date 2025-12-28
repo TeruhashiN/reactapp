@@ -75,7 +75,7 @@ const Header: React.FC = () => {
               <div>
                 <h1 className="display-4 fw-bold">Brylle Justin Heraldo</h1>
                 <p className="lead">
-                  Full Stack Developer | Game Developer | 3D Artist
+                  Software Developer | Game Developer
                 </p>
                 <div className="d-flex justify-content-center gap-3 mb-3">
                   {socialLinks.map((link, index) => (
