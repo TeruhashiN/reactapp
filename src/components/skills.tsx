@@ -114,6 +114,9 @@ const Skills: React.FC = () => {
                       Wordpress
                     </span>
                     <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
+                      Shopify
+                    </span>
+                    <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
                       Figma
                     </span>
                     <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
