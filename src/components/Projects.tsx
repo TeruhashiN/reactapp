@@ -4,6 +4,7 @@ const Projects: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showNotAvailableModal, setShowNotAvailableModal] = useState(false);
 
   const handleProjectClick = (project: any) => {
     setSelectedProject(project);
@@ -17,9 +18,23 @@ const Projects: React.FC = () => {
     setCurrentSlide(0);
   };
 
+  const handleCloseNotAvailableModal = () => {
+    setShowNotAvailableModal(false);
+  };
+
+  const handleLinkClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    url: string
+  ) => {
+    if (url === "#") {
+      e.preventDefault();
+      setShowNotAvailableModal(true);
+    }
+  };
+
   const nextSlide = () => {
     if (selectedProject) {
-      setCurrentSlide((prev) => 
+      setCurrentSlide((prev) =>
         prev === selectedProject.images.length - 1 ? 0 : prev + 1
       );
     }
@@ -27,7 +42,7 @@ const Projects: React.FC = () => {
 
   const prevSlide = () => {
     if (selectedProject) {
-      setCurrentSlide((prev) => 
+      setCurrentSlide((prev) =>
         prev === 0 ? selectedProject.images.length - 1 : prev - 1
       );
     }
@@ -144,7 +159,8 @@ const Projects: React.FC = () => {
         "A process-based model designed to represent the actual workflow of the Land Transportation Office’s licensing operations.",
       image: "./src/assets/lto/lto.png",
       technologies: ["Python", "Pygame", "Tkinter", "Simulation"],
-      liveUrl: "https://drive.google.com/drive/folders/1yIKmtypsRRm_3wrMNM9aqzl_G9M7LACU?usp=sharing",
+      liveUrl:
+        "https://drive.google.com/drive/folders/1yIKmtypsRRm_3wrMNM9aqzl_G9M7LACU?usp=sharing",
       githubUrl: "https://github.com/TeruhashiN/LTO_Queueing_Simulation",
       collaboration: "Team Project",
       images: [
@@ -180,7 +196,6 @@ const Projects: React.FC = () => {
         "./src/assets/design/des11.png",
         "./src/assets/design/des12.jpeg",
         "./src/assets/design/Loftia.png",
-
       ],
     },
   ];
@@ -232,7 +247,10 @@ const Projects: React.FC = () => {
                       className="btn btn-primary me-2"
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLinkClick(e, project.liveUrl);
+                      }}
                     >
                       Live Demo
                     </a>
@@ -241,7 +259,10 @@ const Projects: React.FC = () => {
                       className="btn btn-outline-secondary"
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLinkClick(e, project.githubUrl);
+                      }}
                     >
                       GitHub
                     </a>
@@ -277,40 +298,53 @@ const Projects: React.FC = () => {
                 </div>
                 <div className="modal-body">
                   {/* Custom Carousel */}
-                  <div className="carousel slide position-relative" style={{ backgroundColor: "#f8f9fa" }}>
+                  <div
+                    className="carousel slide position-relative"
+                    style={{ backgroundColor: "#f8f9fa" }}
+                  >
                     {/* Carousel Indicators */}
                     <div className="carousel-indicators">
-                      {selectedProject.images.map((_: string, imgIndex: number) => (
-                        <button
-                          key={imgIndex}
-                          type="button"
-                          onClick={() => goToSlide(imgIndex)}
-                          className={imgIndex === currentSlide ? "active" : ""}
-                          aria-current={imgIndex === currentSlide ? "true" : "false"}
-                          aria-label={`Slide ${imgIndex + 1}`}
-                        ></button>
-                      ))}
+                      {selectedProject.images.map(
+                        (_: string, imgIndex: number) => (
+                          <button
+                            key={imgIndex}
+                            type="button"
+                            onClick={() => goToSlide(imgIndex)}
+                            className={
+                              imgIndex === currentSlide ? "active" : ""
+                            }
+                            aria-current={
+                              imgIndex === currentSlide ? "true" : "false"
+                            }
+                            aria-label={`Slide ${imgIndex + 1}`}
+                          ></button>
+                        )
+                      )}
                     </div>
 
                     {/* Carousel Inner */}
                     <div className="carousel-inner">
-                      {selectedProject.images.map((img: string, imgIndex: number) => (
-                        <div
-                          key={imgIndex}
-                          className={`carousel-item ${imgIndex === currentSlide ? "active" : ""}`}
-                        >
-                          <img
-                            src={img}
-                            className="d-block w-100"
-                            alt={`Slide ${imgIndex + 1}`}
-                            style={{
-                              height: "300px",
-                              objectFit: "contain",
-                              objectPosition: "center",
-                            }}
-                          />
-                        </div>
-                      ))}
+                      {selectedProject.images.map(
+                        (img: string, imgIndex: number) => (
+                          <div
+                            key={imgIndex}
+                            className={`carousel-item ${
+                              imgIndex === currentSlide ? "active" : ""
+                            }`}
+                          >
+                            <img
+                              src={img}
+                              className="d-block w-100"
+                              alt={`Slide ${imgIndex + 1}`}
+                              style={{
+                                height: "300px",
+                                objectFit: "contain",
+                                objectPosition: "center",
+                              }}
+                            />
+                          </div>
+                        )
+                      )}
                     </div>
 
                     {/* Carousel Controls */}
@@ -367,6 +401,9 @@ const Projects: React.FC = () => {
                       className="btn btn-primary me-2"
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) =>
+                        handleLinkClick(e, selectedProject.liveUrl)
+                      }
                     >
                       Live Demo
                     </a>
@@ -375,10 +412,53 @@ const Projects: React.FC = () => {
                       className="btn btn-outline-secondary"
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) =>
+                        handleLinkClick(e, selectedProject.githubUrl)
+                      }
                     >
                       GitHub
                     </a>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Not Available Modal */}
+        {showNotAvailableModal && (
+          <div
+            className="modal fade show d-block"
+            tabIndex={-1}
+            role="dialog"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+            onClick={handleCloseNotAvailableModal}
+          >
+            <div
+              className="modal-dialog modal-sm"
+              role="document"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Not Available</h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={handleCloseNotAvailableModal}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  <p>Not available for this project.</p>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleCloseNotAvailableModal}
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             </div>
