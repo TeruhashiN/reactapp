@@ -6,7 +6,7 @@ const Certifications: React.FC = () => {
       title: "ICT Industry Masterclass in Python Programming",
       issuer: "Huawei",
       date: "May 2022",
-      image: "./src/assets/huaweidp.png",
+      image: "./images/huaweidp.png",
       verificationUrl: "https://drive.google.com/file/d/1TiTXtVK-iYshNX-Qy21FASenGqA1InUy/view?usp=sharing",
     },
     {
@@ -14,7 +14,7 @@ const Certifications: React.FC = () => {
       issuer: "Camarines Norte State College - College of Computing and Multimedia Studies ",
       date: "June 2023",
       credentialId: "",
-      image: "./src/assets/ccms.jpg",
+      image: "./images/ccms.jpg",
       verificationUrl: "https://drive.google.com/drive/folders/1WNX4wQynNlkt33gIUDhKILCD4lizBeH8?usp=sharing",
     },
     {
@@ -22,7 +22,7 @@ const Certifications: React.FC = () => {
       issuer: "Google",
       date: "December 2024",
       credentialId: "YBJI1T7JOJBM",
-      image: "./src/assets/google.png",
+      image: "./images/google.png",
       verificationUrl: "https://www.coursera.org/account/accomplishments/verify/YBJI1T7JOJBM",
     },
     {
@@ -30,7 +30,7 @@ const Certifications: React.FC = () => {
       issuer: "OPSWAT",
       date: "February 2025",
       credentialId: "",
-      image: "./src/assets/opswat.png",
+      image: "./images/opswat.png",
       verificationUrl: "https://www.credly.com/badges/221a4d6d-29a6-482f-a6ad-3d79ac33f8f2/linked_in_profile",
     },
     {
@@ -38,7 +38,7 @@ const Certifications: React.FC = () => {
       issuer: "Udemy",
       date: "April 2025 - December 2035",
       credentialId: "UC-8c535836-6ada-4661-bd89-2fc994056e36",
-      image: "./src/assets/udemy.png",
+      image: "./images/udemy.png",
       verificationUrl: "https://www.udemy.com/certificate/UC-8c535836-6ada-4661-bd89-2fc994056e36/",
     },
     {
@@ -46,7 +46,7 @@ const Certifications: React.FC = () => {
       issuer: "Aviatrix",
       date: "July 2025 - July 2028",
       credentialId: "2025-25347",
-      image: "./src/assets/avia.png",
+      image: "./images/avia.png",
       verificationUrl: "https://www.credly.com/badges/ed65649b-0ea8-4f31-8720-191577e94022/linked_in_profile",
     },
   ];

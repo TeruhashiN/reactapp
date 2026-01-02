@@ -27,10 +27,6 @@ const Footer: React.FC = () => {
     { name: "Certifications", href: "#certifications" },
   ];
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   return (
     <footer id="footer" className="bg-white text-black py-4">
       <div className="container border-top border-dark pt-4">
@@ -39,7 +35,9 @@ const Footer: React.FC = () => {
           <div className="col-lg-4 mb-4">
             <h6 className="fw-bold mb-3">Brylle Justin Heraldo</h6>
             <p className="text-black mb-3">
-              Software Developer experienced in web, mobile, game development, and 3D design, dedicated to delivering innovative and high-quality solutions.
+              Software Developer experienced in web, mobile, game development,
+              and 3D design, dedicated to delivering innovative and high-quality
+              solutions.
             </p>
             <div className="d-flex">
               {socialLinks.map((link, index) => (

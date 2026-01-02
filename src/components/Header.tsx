@@ -1,5 +1,4 @@
 import React from "react";
-import profileDP from "../assets/profileDPs.jpg";
 
 const Header: React.FC = () => {
   const socialLinks = [
@@ -74,9 +73,7 @@ const Header: React.FC = () => {
             <div className="d-flex flex-column flex-lg-row align-items-center justify-content-center text-center gap-4">
               <div>
                 <h1 className="display-4 fw-bold">Brylle Justin Heraldo</h1>
-                <p className="lead">
-                  Software Developer | Game Developer
-                </p>
+                <p className="lead">Software Developer | Game Developer</p>
                 <div className="d-flex justify-content-center gap-3 mb-3">
                   {socialLinks.map((link, index) => (
                     <a
@@ -94,7 +91,7 @@ const Header: React.FC = () => {
               </div>
 
               <img
-                src={profileDP}
+                src="/images/profileDPs.jpg"
                 alt="Profile"
                 className="small-profile shadow"
               />

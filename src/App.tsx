@@ -1,4 +1,3 @@
-import React from "react";
 import "./App.css";
 import Header from "./components/Header";
 import About from "./components/About";
@@ -13,7 +12,7 @@ function App() {
     <div className="App">
       <Header />
       <About />
-      <Skills/>
+      <Skills />
       <Experience />
       <Projects />
       <Certifications />
