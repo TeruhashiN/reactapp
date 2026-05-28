@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const Footer: React.FC = () => {
   const socialLinks = [
@@ -14,9 +15,9 @@ const Footer: React.FC = () => {
       text: "TikTok",
     },
     {
-      name: "Facebook",
-      url: "https://www.facebook.com/BrylleJustin.Chi",
-      text: "Facebook",
+      name: "测验部分",
+      url: "/quiz",
+      text: "测验部分",
     },
   ];
 
@@ -40,19 +41,38 @@ const Footer: React.FC = () => {
               solutions.
             </p>
             <div className="d-flex">
-              {socialLinks.map((link, index) => (
-                <a
-                  key={index}
-                  href={link.url}
-                  className="text-black me-3 text-decoration-none fw-semibold"
-                  title={link.name}
-                  target={link.url.startsWith("http") ? "_blank" : "_self"}
-                  rel={link.url.startsWith("http") ? "noopener noreferrer" : ""}
-                  aria-label={`Visit ${link.name}`}
-                >
-                  {link.text}
-                </a>
-              ))}
+              {socialLinks.map((link, index) => {
+                const isInternalQuizRoute = link.url.startsWith("/");
+
+                if (isInternalQuizRoute) {
+                  return (
+                    <Link
+                      key={index}
+                      to={link.url}
+                      className="text-black me-3 text-decoration-none fw-semibold"
+                      aria-label={`Go to ${link.name}`}
+                    >
+                      {link.text}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <a
+                    key={index}
+                    href={link.url}
+                    className="text-black me-3 text-decoration-none fw-semibold"
+                    title={link.name}
+                    target={link.url.startsWith("http") ? "_blank" : "_self"}
+                    rel={
+                      link.url.startsWith("http") ? "noopener noreferrer" : ""
+                    }
+                    aria-label={`Visit ${link.name}`}
+                  >
+                    {link.text}
+                  </a>
+                );
+              })}
             </div>
           </div>
 

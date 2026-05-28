@@ -1,23 +1,15 @@
 import "./App.css";
-import Header from "./components/Header";
-import About from "./components/About";
-import Skills from "./components/skills";
-import Experience from "./components/Experience";
-import Projects from "./components/Projects";
-import Certifications from "./components/Certifications";
-import Footer from "./components/Footer";
+import { Navigate, Route, Routes } from "react-router-dom";
+import Home from "./components/Home";
+import Quiz from "./components/Quiz";
 
 function App() {
   return (
-    <div className="App">
-      <Header />
-      <About />
-      <Skills />
-      <Experience />
-      <Projects />
-      <Certifications />
-      <Footer />
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/quiz" element={<Quiz />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
