@@ -11,6 +11,56 @@ const Experience: React.FC = () => {
             <div className="section-border mb-4">
               <div className="row">
                 <div className="col-md-8">
+                  <h5 className="card-title">E-Commerce Data Analyst</h5>
+                  <h6 className="text-primary">
+                    Taiyuan Zhihe Xing Education Technology Co., Ltd | March 2026 – Present
+                  </h6>
+                  <h6 className="text-primary">
+                    Independent Contractor
+                  </h6>
+
+                  <ul className="mt-3">
+                    <li>
+                      Annotated and validated e-commerce product data from Lazada and other
+                      online marketplace platforms to ensure accuracy and consistency.
+                    </li>
+
+                    <li>
+                      Reviewed product attributes such as category, specifications, package
+                      type, brand, and descriptions to identify incorrect or mismatched data.
+                    </li>
+
+                    <li>
+                      Performed quality assurance checks and corrected annotation errors
+                      following company guidelines and data standards.
+                    </li>
+
+                    <li>
+                      Analyzed multiple product listings efficiently while maintaining high
+                      attention to detail and data reliability.
+                    </li>
+
+                    <li>
+                      Utilized AI-assisted tools and data analysis techniques to improve
+                      annotation workflow and productivity.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="col-md-4">
+                  <span className="badge bg-success mb-2 me-1">Lazada</span>
+                  <span className="badge bg-success mb-2 me-1">Data Annotation</span>
+                  <span className="badge bg-success mb-2 me-1">Quality Assurance</span>
+                  <span className="badge bg-success mb-2 me-1">DeepSeek</span>
+                  <span className="badge bg-success mb-2 me-1">ChatGPT</span>
+                  <span className="badge bg-success mb-2 me-1">ClaudeAI</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="section-border mb-4">
+              <div className="row">
+                <div className="col-md-8">
                   <h5 className="card-title">Full Stack Developer Intern</h5>
                   <h6 className="text-primary">
                     Local Government Unit of Talisay – HR Department | February 2025 – May
