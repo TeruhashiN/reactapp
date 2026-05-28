@@ -6,7 +6,7 @@ const Certifications: React.FC = () => {
       title: "ICT Industry Masterclass in Python Programming",
       issuer: "Huawei",
       date: "May 2022",
-      image: "./images/huaweidp.png",
+      image: "/images/huaweidp.png",
       verificationUrl:
         "https://drive.google.com/file/d/1TiTXtVK-iYshNX-Qy21FASenGqA1InUy/view?usp=sharing",
     },
@@ -86,7 +86,8 @@ const Certifications: React.FC = () => {
                         style={{
                           width: "60px",
                           height: "40px",
-                          objectFit: "cover",
+                          objectFit: "contain",
+                          backgroundColor: "#f8f9fa",
                         }}
                       />
                       <div>

@@ -264,10 +264,11 @@ p, li {
 }
 
 /* Certifications section - 75% scale */
-#certifications .card img {
-  width: 32px !important;
-  height: 24px !important;
-}
+ #certifications .card img {
+   width: 32px !important;
+   height: 24px !important;
+   object-fit: contain !important;
+ }
 
 #certifications .card-title {
   font-size: 0.7rem !important;
