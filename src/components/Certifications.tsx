@@ -56,6 +56,16 @@ const Certifications: React.FC = () => {
       verificationUrl:
         "https://www.credly.com/badges/ed65649b-0ea8-4f31-8720-191577e94022/linked_in_profile",
     },
+    {
+      title: "Data Analytics Level III",
+      issuer: "TESDA",
+      date: "June 2026 - June 2031",
+      credentialId: "2025-25347",
+      image: "./images/tesda.png",
+      verificationUrl:
+        "https://www.credly.com/badges/ed65649b-0ea8-4f31-8720-191577e94022/linked_in_profile",
+    },
+    
   ];
 
   return (
