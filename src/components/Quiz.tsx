@@ -1,10 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./quiz.css";
-
-const USERS: Record<string, string> = {
-  student: "china123",
-  demo: "password",
-};
 
 type Question = {
   hanzi: string;
@@ -78,10 +74,12 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function Quiz() {
+  const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
 
   const [questions] = useState(() => shuffle(QUESTIONS).slice(0, 6));
@@ -93,12 +91,28 @@ export default function Quiz() {
     { hanzi: string; chosen: string; correct: string; ok: boolean }[]
   >([]);
 
-  function handleLogin() {
-    if (USERS[username] && USERS[username] === password) {
-      setLoggedIn(true);
+  async function handleLogin() {
+    try {
       setLoginError("");
-    } else {
-      setLoginError("Invalid username or password.");
+
+      const res = await fetch("http://localhost:4000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || "Login failed");
+      }
+
+      const data: { token: string } = await res.json();
+      localStorage.setItem("token", data.token);
+      setLoggedIn(true);
+      navigate("/dashboard", { replace: true });
+    } catch (e: any) {
+      setLoggedIn(false);
+      setLoginError(e?.message || "Invalid username or password.");
     }
   }
 
@@ -139,15 +153,15 @@ export default function Quiz() {
       <section className="quiz-section" id="quiz">
         <div className="quiz-shell">
           <div className="quiz-card" style={{ maxWidth: 560 }}>
-          <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-            <div style={{ fontSize: 48, marginBottom: "0.5rem" }}>🀄</div>
-            <h1 style={{ fontSize: 26, fontWeight: 700, margin: "0 0 6px" }}>
-              Chinese Student Quiz Section
-            </h1>
-            <p className="quiz-subtitle" style={{ margin: 0 }}>
-              Sign in to test your English knowledge
-            </p>
-          </div>
+            <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+              <div style={{ fontSize: 48, marginBottom: "0.5rem" }}>🀄</div>
+              <h1 style={{ fontSize: 26, fontWeight: 700, margin: "0 0 6px" }}>
+                Chinese Student Quiz Section
+              </h1>
+              <p className="quiz-subtitle" style={{ margin: 0 }}>
+                Sign in to test your English knowledge
+              </p>
+            </div>
 
             <div className="quiz-login-grid">
               <div style={{ marginBottom: "1.25rem" }}>
@@ -161,7 +175,6 @@ export default function Quiz() {
                   placeholder="Enter username"
                 />
               </div>
-
               <div style={{ marginBottom: "1.25rem" }}>
                 <label className="quiz-form-label">Password</label>
                 <div style={{ position: "relative" }}>
@@ -199,7 +212,6 @@ export default function Quiz() {
                   </button>
                 </div>
               </div>
-
               {loginError && (
                 <div className="quiz-alert">
                   <i
@@ -210,11 +222,9 @@ export default function Quiz() {
                   {loginError}
                 </div>
               )}
-
               <button onClick={handleLogin} className="quiz-btn" type="button">
                 Sign in
               </button>
-
             </div>
           </div>
         </div>

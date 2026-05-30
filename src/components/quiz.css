@@ -1,6 +1,8 @@
 /* Quiz section styling (standalone) */
 
 .quiz-section {
+  position: fixed;
+  inset: 0;
   height: 100vh;
   background-image: url("/images/chinesebg.jpg");
   background-size: cover;
@@ -10,6 +12,7 @@
   margin: 0;
   padding: 0;
 }
+
 
 .quiz-shell {
   height: 100%;
