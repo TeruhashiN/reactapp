@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 type MeResponse = {
   user: { user_id: number; username: string; score: number };
@@ -42,7 +42,9 @@ function getInitials(username: string) {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+
   const [me, setMe] = useState<MeResponse["user"] | null>(null);
   const [leaderboard, setLeaderboard] = useState<{
     totalUsers: number;
@@ -222,6 +224,72 @@ export default function Dashboard() {
               );
             })}
           </div>
+        </div>
+
+        {/* ── Dictionary ── */}
+        <div style={styles.card}>
+          <button
+            type="button"
+            onClick={() => navigate("/dictionary")}
+            style={{
+              width: "100%",
+              border: "0.5px solid #D3D1C7",
+              background: "#FAECE7",
+              padding: "0.95rem 1rem",
+              borderRadius: 10,
+              cursor: "pointer",
+              textAlign: "left",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              transition:
+                "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
+            }}
+            aria-label="Open dictionary"
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                "0 8px 18px rgba(60, 52, 137, 0.10)";
+              (e.currentTarget as HTMLButtonElement).style.transform =
+                "translateY(-1px)";
+              (e.currentTarget as HTMLButtonElement).style.background =
+                "#F7E0D8";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+              (e.currentTarget as HTMLButtonElement).style.transform =
+                "translateY(0)";
+              (e.currentTarget as HTMLButtonElement).style.background =
+                "#FAECE7";
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <h2 style={{ ...styles.cardTitle, margin: 0, fontSize: 16 }}>
+                Dictionary
+              </h2>
+              <p style={{ ...styles.cardSub, margin: 0 }}>
+                Quick lookup for useful words
+              </p>
+            </div>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "#EEEDFE",
+                border: "0.5px solid #AFA9EC",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+                flexShrink: 0,
+                color: "#3C3489",
+              }}
+            >
+              🔎
+            </span>
+          </button>
         </div>
 
         {/* ── English level ── */}
@@ -620,6 +688,41 @@ const styles: Record<string, React.CSSProperties> = {
   },
   dlLabel: { color: "#888780" },
   dlVal: { fontWeight: 500 },
+
+  /* Dictionary table */
+  tableWrap: {
+    marginTop: 12,
+    overflowX: "auto",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "separate" as const,
+    borderSpacing: 0,
+    fontSize: 13,
+  },
+  th: {
+    textAlign: "left" as const,
+    fontSize: 12,
+    color: "#888780",
+    fontWeight: 600,
+    padding: "10px 10px",
+    borderBottom: "0.5px solid #F1EFE8",
+    whiteSpace: "nowrap",
+  },
+  td: {
+    padding: "10px 10px",
+    borderBottom: "0.5px solid #F1EFE8",
+    color: "#2C2C2A",
+    verticalAlign: "top",
+  },
+  tdWord: {
+    padding: "10px 10px",
+    borderBottom: "0.5px solid #F1EFE8",
+    fontWeight: 600,
+    color: "#3C3489",
+    whiteSpace: "nowrap",
+    verticalAlign: "top",
+  },
 
   /* Options */
   optRow: {
