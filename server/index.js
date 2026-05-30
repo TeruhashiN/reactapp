@@ -57,6 +57,39 @@ app.get('/api/me', requireAuth, async (req, res) => {
   return res.json({ user: req.user });
 });
 
+// Token-protected endpoint to get leaderboard rank for current user
+// Returns: { totalUsers, rank }
+app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
+  try {
+    const table = process.env.DB_TABLE || 'user';
+    const currentUserId = req.user.user_id;
+
+    // total users
+    const [totalRows] = await require('./db').pool.query(`SELECT COUNT(*) AS total FROM \`${table}\``);
+    const totalUsers = Number(totalRows[0]?.total ?? 0);
+
+    // score for current user
+    const [scoreRows] = await require('./db').pool.query(
+      `SELECT score FROM \`${table}\` WHERE user_id = ? LIMIT 1`,
+      [currentUserId]
+    );
+    const myScore = Number(scoreRows[0]?.score ?? 0);
+
+    // Rank by ordering score DESC. Tie handling: rank = 1 + number of users with score > myScore
+    const [rankRows] = await require('./db').pool.query(
+      `SELECT COUNT(*) AS higher FROM \`${table}\` WHERE score > ?`,
+      [myScore]
+    );
+    const higher = Number(rankRows[0]?.higher ?? 0);
+    const rank = higher + 1;
+
+    return res.json({ totalUsers, rank });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`Auth server listening on http://localhost:${port}`);

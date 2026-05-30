@@ -23,8 +23,14 @@ function progressToNextLevel(score: number) {
     return { level, progress: 1, currentRangeStart: 450, currentRangeEnd: 500 };
   const currentRangeStart = (level - 1) * 50;
   const currentRangeEnd = level * 50;
-  const progress = (score - currentRangeStart) / (currentRangeEnd - currentRangeStart);
-  return { level, progress: clamp(progress, 0, 1), currentRangeStart, currentRangeEnd };
+  const progress =
+    (score - currentRangeStart) / (currentRangeEnd - currentRangeStart);
+  return {
+    level,
+    progress: clamp(progress, 0, 1),
+    currentRangeStart,
+    currentRangeEnd,
+  };
 }
 
 function getInitials(username: string) {
@@ -38,6 +44,10 @@ function getInitials(username: string) {
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<MeResponse["user"] | null>(null);
+  const [leaderboard, setLeaderboard] = useState<{
+    totalUsers: number;
+    rank: number;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,6 +69,18 @@ export default function Dashboard() {
         }
         const data: MeResponse = await res.json();
         setMe(data.user);
+
+        // fetch leaderboard rank for the logged-in user
+        const lbRes = await fetch("http://localhost:4000/api/leaderboard/me", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!lbRes.ok) {
+          const msg = await lbRes.text();
+          throw new Error(msg || `Request failed: ${lbRes.status}`);
+        }
+        const lbData: { totalUsers: number; rank: number } = await lbRes.json();
+        setLeaderboard(lbData);
       } catch (e: any) {
         setError(e?.message || "Failed to load user");
         setMe(null);
@@ -71,10 +93,18 @@ export default function Dashboard() {
 
   const derived = useMemo(() => {
     const score = me?.score ?? 0;
-    const { level, progress, currentRangeStart, currentRangeEnd } = progressToNextLevel(score);
+    const { level, progress, currentRangeStart, currentRangeEnd } =
+      progressToNextLevel(score);
     const streak = clamp(Math.floor(score / 25), 0, 50);
-    const rank = clamp(1000 - score, 1, 1000);
-    return { level, score, progress, streak, rank, highScore: score, currentRangeStart, currentRangeEnd };
+    return {
+      level,
+      score,
+      progress,
+      streak,
+      highScore: score,
+      currentRangeStart,
+      currentRangeEnd,
+    };
   }, [me]);
 
   if (!loading && !me) return <Navigate to="/quiz" replace />;
@@ -94,7 +124,6 @@ export default function Dashboard() {
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-
         {/* ── Hero ── */}
         <div style={styles.hero}>
           <div style={styles.avatar}>{initials}</div>
@@ -108,15 +137,47 @@ export default function Dashboard() {
         {/* ── Stat cards ── */}
         <div style={styles.statGrid}>
           {[
-            { label: "LEVEL", value: `L${derived.level}`, sub: "of 10 total", color: "#3C3489", bg: "#EEEDFE", icon: "🏆" },
-            { label: "SCORE", value: derived.score, sub: "personal best", color: "#085041", bg: "#E1F5EE", icon: "📊" },
-            { label: "STREAK", value: derived.streak, sub: "days active", color: "#712B13", bg: "#FAECE7", icon: "🔥" },
-            { label: "RANK", value: `#${derived.rank}`, sub: "global standing", color: "#0C447C", bg: "#E6F1FB", icon: "🥇" },
+            {
+              label: "LEVEL",
+              value: `L${derived.level}`,
+              sub: "of 10 total",
+              color: "#3C3489",
+              bg: "#EEEDFE",
+              icon: "🏆",
+            },
+            {
+              label: "SCORE",
+              value: derived.score,
+              sub: "personal best",
+              color: "#085041",
+              bg: "#E1F5EE",
+              icon: "📊",
+            },
+            {
+              label: "STREAK",
+              value: derived.streak,
+              sub: "days active",
+              color: "#712B13",
+              bg: "#FAECE7",
+              icon: "🔥",
+            },
+            {
+              label: "RANK",
+              value: leaderboard ? `#${leaderboard.rank}` : "#…",
+              sub: leaderboard
+                ? `of ${leaderboard.totalUsers} users`
+                : "global standing",
+              color: "#0C447C",
+              bg: "#E6F1FB",
+              icon: "🥇",
+            },
           ].map((s) => (
             <div key={s.label} style={styles.statCard}>
               <div style={{ fontSize: 20, marginBottom: 4 }}>{s.icon}</div>
               <div style={styles.statLabel}>{s.label}</div>
-              <div style={{ ...styles.statValue, color: s.color }}>{s.value}</div>
+              <div style={{ ...styles.statValue, color: s.color }}>
+                {s.value}
+              </div>
               <div style={styles.statSub}>{s.sub}</div>
             </div>
           ))}
@@ -127,9 +188,13 @@ export default function Dashboard() {
           <div style={styles.cardHeader}>
             <div>
               <h2 style={styles.cardTitle}>Choose a level</h2>
-              <p style={styles.cardSub}>Unlock higher levels by scoring more points</p>
+              <p style={styles.cardSub}>
+                Unlock higher levels by scoring more points
+              </p>
             </div>
-            <span style={styles.badgePurple}>Unlocked up to L{derived.level}</span>
+            <span style={styles.badgePurple}>
+              Unlocked up to L{derived.level}
+            </span>
           </div>
           <div style={styles.levelGrid}>
             {Array.from({ length: 10 }).map((_, idx) => {
@@ -140,10 +205,16 @@ export default function Dashboard() {
                 <button
                   key={lvl}
                   disabled={!unlocked}
-                  onClick={() => alert(`Level ${lvl} quizzes will be added later.`)}
+                  onClick={() =>
+                    alert(`Level ${lvl} quizzes will be added later.`)
+                  }
                   style={{
                     ...styles.lvlBtn,
-                    ...(isCurrent ? styles.lvlBtnCurrent : unlocked ? styles.lvlBtnUnlocked : styles.lvlBtnLocked),
+                    ...(isCurrent
+                      ? styles.lvlBtnCurrent
+                      : unlocked
+                        ? styles.lvlBtnUnlocked
+                        : styles.lvlBtnLocked),
                   }}
                 >
                   {isCurrent ? "👑 " : ""}L{lvl}
@@ -168,7 +239,11 @@ export default function Dashboard() {
                 onClick={() => alert(`${b.label} English section coming soon!`)}
                 style={{
                   ...styles.secBtn,
-                  ...(b.cls === "teal" ? styles.secBtnTeal : b.cls === "purple" ? styles.secBtnPurple : styles.secBtnCoral),
+                  ...(b.cls === "teal"
+                    ? styles.secBtnTeal
+                    : b.cls === "purple"
+                      ? styles.secBtnPurple
+                      : styles.secBtnCoral),
                   ...(b.full ? { gridColumn: "1 / -1" } : {}),
                 }}
               >
@@ -181,7 +256,9 @@ export default function Dashboard() {
         {/* ── Reading section ── */}
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Reading section</h2>
-          <p style={styles.cardSub}>Choose an exercise to improve comprehension</p>
+          <p style={styles.cardSub}>
+            Choose an exercise to improve comprehension
+          </p>
           <div style={styles.sectionGrid}>
             {[
               { label: "📄 Short passages", cls: "teal" },
@@ -193,7 +270,11 @@ export default function Dashboard() {
                 onClick={() => alert(`${b.label} reading section coming soon!`)}
                 style={{
                   ...styles.secBtn,
-                  ...(b.cls === "teal" ? styles.secBtnTeal : b.cls === "purple" ? styles.secBtnPurple : styles.secBtnCoral),
+                  ...(b.cls === "teal"
+                    ? styles.secBtnTeal
+                    : b.cls === "purple"
+                      ? styles.secBtnPurple
+                      : styles.secBtnCoral),
                   ...(b.full ? { gridColumn: "1 / -1" } : {}),
                 }}
               >
@@ -203,20 +284,30 @@ export default function Dashboard() {
           </div>
         </div>
 
-{/* ── Progress + Details ── */}
+        {/* ── Progress + Details ── */}
         <div style={styles.bottomGrid}>
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Progress to next level</h2>
-            <p style={styles.cardSub}>L{derived.level} → L{Math.min(derived.level + 1, 10)}</p>
+            <p style={styles.cardSub}>
+              L{derived.level} → L{Math.min(derived.level + 1, 10)}
+            </p>
             <div style={styles.progressWrap}>
-              <div style={{ ...styles.progressBar, width: `${progressPct}%` }} />
+              <div
+                style={{ ...styles.progressBar, width: `${progressPct}%` }}
+              />
             </div>
             <div style={styles.progLabels}>
-              <span>{derived.level === 1 ? 0 : derived.currentRangeStart} pts</span>
+              <span>
+                {derived.level === 1 ? 0 : derived.currentRangeStart} pts
+              </span>
               <span style={{ fontWeight: 500 }}>{progressPct}%</span>
               <span>{derived.currentRangeEnd} pts</span>
             </div>
-            <p style={{ ...styles.cardSub, marginTop: 12 }}>{derived.level < 10 ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 10!` : "Keep scoring to reach Level 10!"}</p>
+            <p style={{ ...styles.cardSub, marginTop: 12 }}>
+              {derived.level < 10
+                ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 10!`
+                : "Keep scoring to reach Level 10!"}
+            </p>
           </div>
 
           <div style={styles.card}>
@@ -226,7 +317,12 @@ export default function Dashboard() {
               { label: "Level", value: `L${derived.level}` },
               { label: "Score", value: derived.score },
               { label: "Streak", value: `${derived.streak} days` },
-              { label: "Rank", value: `#${derived.rank}` },
+              {
+                label: "Rank",
+                value: leaderboard
+                  ? `#${leaderboard.rank} / ${leaderboard.totalUsers}`
+                  : "#…",
+              },
             ].map((row) => (
               <div key={row.label} style={styles.dlRow}>
                 <span style={styles.dlLabel}>{row.label}</span>
@@ -241,12 +337,19 @@ export default function Dashboard() {
           <h2 style={styles.cardTitle}>Options</h2>
           <div style={styles.optRow}>
             {["⚙️ Settings", "🔒 Change password"].map((opt) => (
-              <button key={opt} onClick={() => alert(`${opt} feature coming soon!`)} style={styles.optBtn}>
+              <button
+                key={opt}
+                onClick={() => alert(`${opt} feature coming soon!`)}
+                style={styles.optBtn}
+              >
                 {opt}
               </button>
             ))}
             <button
-              onClick={() => { localStorage.removeItem("token"); window.location.href = "/quiz"; }}
+              onClick={() => {
+                localStorage.removeItem("token");
+                window.location.href = "/quiz";
+              }}
               style={{ ...styles.optBtn, ...styles.optBtnDanger }}
             >
               🚪 Log out
@@ -461,9 +564,21 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 8,
   },
-  secBtnTeal: { background: "#E1F5EE", color: "#085041", borderColor: "#5DCAA5" },
-  secBtnPurple: { background: "#EEEDFE", color: "#3C3489", borderColor: "#AFA9EC" },
-  secBtnCoral: { background: "#FAECE7", color: "#993C1D", borderColor: "#F0997B" },
+  secBtnTeal: {
+    background: "#E1F5EE",
+    color: "#085041",
+    borderColor: "#5DCAA5",
+  },
+  secBtnPurple: {
+    background: "#EEEDFE",
+    color: "#3C3489",
+    borderColor: "#AFA9EC",
+  },
+  secBtnCoral: {
+    background: "#FAECE7",
+    color: "#993C1D",
+    borderColor: "#F0997B",
+  },
 
   /* Bottom grid */
   bottomGrid: {
@@ -507,7 +622,12 @@ const styles: Record<string, React.CSSProperties> = {
   dlVal: { fontWeight: 500 },
 
   /* Options */
-  optRow: { display: "flex", flexDirection: "column" as const, gap: 8, marginTop: 12 },
+  optRow: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 8,
+    marginTop: 12,
+  },
   optBtn: {
     border: "0.5px solid #D3D1C7",
     background: "#fff",
