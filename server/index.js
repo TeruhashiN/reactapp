@@ -48,9 +48,17 @@ app.post('/api/login', async (req, res) => {
     return res.json({ token, user: payload });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: 'Server error' });
+    // Surface actual MySQL error details to diagnose DB_NAME/table/columns.
+    return res.status(500).json({
+      message: 'Server error',
+      error: err?.message,
+      code: err?.code,
+      errno: err?.errno,
+      sqlState: err?.sqlState,
+    });
   }
 });
+
 
 // Token-protected endpoint to get current user
 app.get('/api/me', requireAuth, async (req, res) => {
@@ -89,6 +97,62 @@ app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 });
+
+// Dictionary data (English): returns rows from `english` table.
+// Columns: words (word), meaning, chinese.
+// Sorting is done A->Z by `words`.
+app.get('/api/dictionary/english', async (req, res) => {
+  try {
+    // DB credentials are expected in env vars.
+    // If env vars are missing, mysql2 will error; we surface a clear message.
+    console.log('DB_HOST:', process.env.DB_HOST);
+    console.log('DB_USER:', process.env.DB_USER);
+    console.log('DB_NAME:', process.env.DB_NAME);
+    if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {
+      return res.status(500).json({
+        message:
+          'Database not configured. Please set DB_HOST/DB_USER/DB_PASSWORD/DB_NAME in server env.',
+      });
+    }
+
+    const table = 'english';
+
+    // Try common column names. Your error says the query tried to select `english`.
+    // We'll detect the actual column set from MySQL metadata.
+    const [columns] = await require('./db').pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
+      [process.env.DB_NAME, table]
+    );
+
+    const colNames = columns.map((c) => c.COLUMN_NAME);
+    const hasEnglish = colNames.includes('english');
+    const hasWords = colNames.includes('words');
+
+    const englishCol = hasEnglish ? 'english' : 'words';
+
+    const [rows] = await require('./db').pool.query(
+      `SELECT \`${englishCol}\` AS english, meaning, chinese FROM \`${table}\` ORDER BY \`${englishCol}\` ASC`
+    );
+
+    return res.json({
+      items: rows.map((r) => ({
+        english: r.english,
+        meaning: r.meaning,
+        chinese: r.chinese,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      message: 'Server error',
+      error: err?.message,
+      code: err?.code,
+      errno: err?.errno,
+      sqlState: err?.sqlState,
+    });
+  }
+});
+
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => {

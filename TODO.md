@@ -1,4 +1,5 @@
-- [x] Inspect current dashboard layout/components
-- [x] Add new “Dictionary” card to Dashboard.tsx with a table UI
-- [x] Add table styles (header/rows/cell padding)
-- [x] Ensure TypeScript/React compiles (npm run build)
+- [x] Inspect Dictionary.tsx and backend server endpoints.
+- [x] Add new backend endpoint to fetch English dictionary rows from MySQL `english` table.
+- [x] Update Dictionary.tsx to call the endpoint and render results.
+- [x] Sort dictionary entries A→Z by the `english` word field.
+- [ ] Run the app and verify dictionary loads correctly.
