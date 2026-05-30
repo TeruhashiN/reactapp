@@ -95,24 +95,29 @@ export default function Quiz() {
     try {
       setLoginError("");
 
-      const res = await fetch("http://localhost:4000/api/login", {
+      const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
 
       if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || "Login failed");
+        const errorData = await res.json().catch(() => ({ message: null }));
+        throw new Error(errorData.message || `Login failed (${res.status})`);
       }
 
       const data: { token: string } = await res.json();
       localStorage.setItem("token", data.token);
       setLoggedIn(true);
       navigate("/dashboard", { replace: true });
-    } catch (e: any) {
+    } catch (e: unknown) {
       setLoggedIn(false);
-      setLoginError(e?.message || "Invalid username or password.");
+      const errorMessage = e instanceof Error ? e.message : "Invalid username or password.";
+      if (e instanceof TypeError && errorMessage === "Failed to fetch") {
+        setLoginError("Unable to connect to server. Please ensure the backend is running on port 4000.");
+      } else {
+        setLoginError(errorMessage);
+      }
     }
   }
 
