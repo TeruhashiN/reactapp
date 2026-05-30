@@ -9,16 +9,20 @@ const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 
 function levelFromScore(score: number) {
-  if (!Number.isFinite(score) || score <= 0) return 1;
-  return clamp(Math.floor(score / 100) + 1, 1, 10);
+  if (!Number.isFinite(score) || score < 0) return 1;
+  const thresholds = [0, 35, 85, 135, 185, 235, 285, 335, 385, 435, 500];
+  for (let i = thresholds.length - 2; i >= 0; i--) {
+    if (score >= thresholds[i]) return i + 1;
+  }
+  return 1;
 }
 
 function progressToNextLevel(score: number) {
   const level = levelFromScore(score);
   if (level >= 10)
-    return { level, progress: 1, currentRangeStart: 900, currentRangeEnd: 1000 };
-  const currentRangeStart = (level - 1) * 100;
-  const currentRangeEnd = level * 100;
+    return { level, progress: 1, currentRangeStart: 450, currentRangeEnd: 500 };
+  const currentRangeStart = (level - 1) * 50;
+  const currentRangeEnd = level * 50;
   const progress = (score - currentRangeStart) / (currentRangeEnd - currentRangeStart);
   return { level, progress: clamp(progress, 0, 1), currentRangeStart, currentRangeEnd };
 }
@@ -199,7 +203,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Progress + Details ── */}
+{/* ── Progress + Details ── */}
         <div style={styles.bottomGrid}>
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Progress to next level</h2>
@@ -208,11 +212,11 @@ export default function Dashboard() {
               <div style={{ ...styles.progressBar, width: `${progressPct}%` }} />
             </div>
             <div style={styles.progLabels}>
-              <span>{derived.currentRangeStart} pts</span>
+              <span>{derived.level === 1 ? 0 : derived.currentRangeStart} pts</span>
               <span style={{ fontWeight: 500 }}>{progressPct}%</span>
               <span>{derived.currentRangeEnd} pts</span>
             </div>
-            <p style={{ ...styles.cardSub, marginTop: 12 }}>Keep scoring to reach Level 10!</p>
+            <p style={{ ...styles.cardSub, marginTop: 12 }}>{derived.level < 10 ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 10!` : "Keep scoring to reach Level 10!"}</p>
           </div>
 
           <div style={styles.card}>
