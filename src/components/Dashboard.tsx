@@ -10,21 +10,29 @@ const clamp = (n: number, min: number, max: number) =>
 
 function levelFromScore(score: number) {
   if (!Number.isFinite(score) || score < 0) return 1;
-  const thresholds = [0, 35, 85, 135, 185, 235, 285, 335, 385, 435, 500];
-  for (let i = thresholds.length - 2; i >= 0; i--) {
-    if (score >= thresholds[i]) return i + 1;
-  }
-  return 1;
+  // L1: 0-49, L2: 50-99, ... L10: 450+
+  return Math.min(10, Math.floor(score / 50) + 1);
 }
 
 function progressToNextLevel(score: number) {
   const level = levelFromScore(score);
-  if (level >= 10)
-    return { level, progress: 1, currentRangeStart: 450, currentRangeEnd: 500 };
+
   const currentRangeStart = (level - 1) * 50;
   const currentRangeEnd = level * 50;
+
+  // Already at max level
+  if (level >= 10) {
+    return {
+      level,
+      progress: 1,
+      currentRangeStart: 450,
+      currentRangeEnd: 500,
+    };
+  }
+
   const progress =
     (score - currentRangeStart) / (currentRangeEnd - currentRangeStart);
+
   return {
     level,
     progress: clamp(progress, 0, 1),
