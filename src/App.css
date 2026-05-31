@@ -405,6 +405,12 @@ footer .mb-4 {
 }
 
 /* Print styles - 75% scale */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media print {
   body {
     background-color: white;
