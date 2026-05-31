@@ -4,6 +4,7 @@ import Home from "./components/Home";
 import Quiz from "./components/Quiz";
 import Dashboard from "./components/Dashboard";
 import Dictionary from "./components/Dictionary";
+import QuizMode from "./components/QuizMode";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/quiz" element={<Quiz />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/quiz-mode" element={<QuizMode />} />
       <Route path="/dictionary" element={<Dictionary />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

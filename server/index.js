@@ -154,6 +154,81 @@ app.get('/api/dictionary/english', async (req, res) => {
 });
 
 
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+// Quiz questions by level (fetches words from english table)
+// Returns: { questions: [{ word, meaning }, ...] }
+// Each level has 50 questions (level 1: 1-50, level 2: 51-100, etc.)
+// Options are randomly shuffled for each question
+app.get('/api/quiz/questions', async (req, res) => {
+  try {
+    const level = parseInt(req.query.level || '1', 10);
+    const limit = Math.min(parseInt(req.query.limit || '50', 10), 50);
+    const levelStart = (level - 1) * 50 + 1;
+    const levelEnd = level * 50;
+    
+    if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {
+      return res.status(500).json({
+        message: 'Database not configured.',
+      });
+    }
+
+    const table = 'english';
+    
+    // Detect columns in the english table
+    const [columns] = await require('./db').pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
+      [process.env.DB_NAME, table]
+    );
+    const colNames = columns.map((c) => c.COLUMN_NAME);
+    const hasId = colNames.includes('id');
+    
+    // Build query based on whether id column exists
+    let questionQuery;
+    let queryParams;
+    
+    if (hasId) {
+      // Use auto-increment id for proper alignment
+      questionQuery = `SELECT words AS word, meaning FROM \`${table}\` WHERE id BETWEEN ? AND ? AND meaning IS NOT NULL AND meaning != '' ORDER BY RAND()`;
+      queryParams = [levelStart, levelEnd];
+    } else {
+      // Fallback: use OFFSET (less precise alignment)
+      const offset = (level - 1) * 50;
+      questionQuery = `SELECT words AS word, meaning FROM \`${table}\` WHERE meaning IS NOT NULL AND meaning != '' ORDER BY words ASC LIMIT ? OFFSET ?`;
+      queryParams = [limit, offset];
+    }
+    
+    const [rows] = await require('./db').pool.query(questionQuery, queryParams);
+
+    // Generate options: correct meaning + 3 random distractors
+    const allMeanings = await require('./db').pool.query(
+      `SELECT meaning FROM \`${table}\` WHERE meaning IS NOT NULL AND meaning != ''`
+    );
+    const allMeaningValues = allMeanings[0].map((r) => r.meaning);
+    
+    const questions = rows.map((q, idx) => {
+      const distractors = shuffle(allMeaningValues.filter(m => m !== q.meaning)).slice(0, 3);
+      const options = shuffle([...distractors, q.meaning]);
+      return {
+        id: hasId ? q.id : levelStart + idx,
+        word: q.word,
+        options: options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt}`),
+        answer: q.meaning,
+      };
+    });
+
+    return res.json({ questions });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      message: 'Server error',
+      error: err?.message,
+    });
+  }
+});
+
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`Auth server listening on http://localhost:${port}`);

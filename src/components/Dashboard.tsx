@@ -215,9 +215,7 @@ export default function Dashboard() {
                 <button
                   key={lvl}
                   disabled={!unlocked}
-                  onClick={() =>
-                    alert(`Level ${lvl} quizzes will be added later.`)
-                  }
+                  onClick={() => navigate(`/quiz-mode?level=${lvl}`)}
                   style={{
                     ...styles.lvlBtn,
                     ...(isCurrent
