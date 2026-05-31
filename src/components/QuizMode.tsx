@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 type QuizQuestion = {
@@ -7,6 +7,45 @@ type QuizQuestion = {
   options: string[];
   answer: string;
 };
+
+type AnswerRecord = {
+  word: string;
+  chosen: string;
+  correct: string;
+  ok: boolean;
+};
+
+// ── Score storage helpers ─────────────────────────────────────────────────────
+const STORAGE_KEY = "bestHighScoreByLevel_v1";
+
+function getBestForLevel(lvl: number): number {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const map: Record<string, number> = raw ? JSON.parse(raw) : {};
+    return map[String(lvl)] ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+function setBestForLevel(lvl: number, newScore: number): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const map: Record<string, number> = raw ? JSON.parse(raw) : {};
+    const prev = map[String(lvl)] ?? 0;
+    if (newScore > prev) {
+      map[String(lvl)] = newScore;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+const OPTION_LETTERS = ["A", "B", "C", "D"];
 
 export default function QuizMode() {
   const navigate = useNavigate();
@@ -18,27 +57,22 @@ export default function QuizMode() {
   const [selected, setSelected] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
-  const [answers, setAnswers] = useState<
-    { word: string; chosen: string; correct: string; ok: boolean }[]
-  >([]);
-
-  const [revealAnswers, setRevealAnswers] = useState(false);
-
-  // Used for “back to previous question” during the quiz
-  const [visited, setVisited] = useState<number[]>([0]);
-
-  // Track whether we already awarded points for each question, so Prev never double-counts.
-  const [, setAwarded] = useState<Record<number, boolean>>({});
+  const [answers, setAnswers] = useState<AnswerRecord[]>([]);
+  const [awarded, setAwarded] = useState<Record<number, boolean>>({});
+  const [isNewBest, setIsNewBest] = useState(false);
+  const [bestScore, setBestScore] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const ringRef = useRef<SVGCircleElement>(null);
 
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(
-        `http://localhost:4000/api/quiz/questions?level=${level}&limit=50`,
+        `http://localhost:4000/api/quiz/questions?level=${level}&limit=50`
       );
       if (!res.ok) throw new Error("Failed to fetch questions");
       const data = await res.json();
@@ -54,75 +88,114 @@ export default function QuizMode() {
     fetchQuestions();
   }, [fetchQuestions]);
 
-  function handleSelect(option: string) {
+  // Load best score on mount
+  useEffect(() => {
+    setBestScore(getBestForLevel(level));
+  }, [level]);
+
+  // Animate the SVG ring when results are shown
+  useEffect(() => {
+    if (!finished || !ringRef.current || questions.length === 0) return;
+    const pct = score / questions.length;
+    const circumference = 314;
+    const offset = circumference - pct * circumference;
+    const el = ringRef.current;
+    el.style.transition = "none";
+    el.style.strokeDashoffset = String(circumference);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.transition = "stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1)";
+        el.style.strokeDashoffset = String(offset);
+      });
+    });
+  }, [finished, score, questions.length]);
+
+  function handleSelect(opt: string) {
+    // Allow re-selection: no early return if already selected
     const q = questions[current];
-    const chosenText = option.replace(/^[A-D]\. /, "");
+    const chosenText = opt.replace(/^[A-D]\. /, "");
     const ok = chosenText === q.answer;
 
-    // Allow re-visiting questions: only count points once per question.
-    setSelected(option);
+    // If switching answer, revoke previously awarded point
+    const wasPreviouslyAwarded = awarded[current];
+    const previousAnswer = answers.find((a) => a.word === q.word);
+    const isSwitching = previousAnswer && previousAnswer.chosen !== opt;
+
+    setSelected(opt);
 
     setAwarded((prev) => {
-      const already = prev[current] === true;
-      if (ok && !already) {
-        setScore((s) => s + 1);
-        return { ...prev, [current]: true };
+      const next = { ...prev };
+      if (ok) {
+        // Award point (or keep it)
+        if (!prev[current]) {
+          setScore((s) => s + 1);
+        }
+        next[current] = true;
+      } else {
+        // Wrong answer: if previously awarded, deduct
+        if (wasPreviouslyAwarded && isSwitching) {
+          setScore((s) => s - 1);
+        }
+        next[current] = false;
       }
-      // If wrong, we never award.
-      return prev;
+      return next;
     });
 
-    // Save answer now, but do NOT reveal correctness in the UI until the end.
     setAnswers((prev) => {
-      const existingIdx = prev.findIndex((a) => a.word === q.word);
-      const next = [...prev];
-      if (existingIdx >= 0) {
-        next[existingIdx] = {
-          word: q.word,
-          chosen: option,
-          correct: q.answer,
-          ok,
-        };
+      const idx = prev.findIndex((a) => a.word === q.word);
+      const rec: AnswerRecord = { word: q.word, chosen: opt, correct: q.answer, ok };
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = rec;
         return next;
       }
-      return [...prev, { word: q.word, chosen: option, correct: q.answer, ok }];
+      return [...prev, rec];
     });
   }
 
   function handleNext() {
     if (current + 1 >= questions.length) {
-      setRevealAnswers(true);
-      setFinished(true);
-    } else {
-      const next = current + 1;
-      setVisited((v) => (v.includes(next) ? v : [...v, next]));
-      setCurrent(next);
-
-      // Restore previously selected answer for next question (if any).
-      const nextQ = questions[next];
-      const existing = answers.find((a) => a.word === nextQ?.word);
-      setSelected(existing ? existing.chosen : null);
-
-      setRevealAnswers(false);
+      finishQuiz();
+      return;
     }
+    const next = current + 1;
+    setCurrent(next);
+    const existing = answers.find((a) => a.word === questions[next]?.word);
+    setSelected(existing ? existing.chosen : null);
   }
 
   function handlePrev() {
     if (current <= 0) return;
-    const idx = visited.lastIndexOf(current);
-    const prevIndex = idx > 0 ? visited[idx - 1] : current - 1;
-    const nextCurrent = Math.max(0, prevIndex);
-
-    setCurrent(nextCurrent);
-
-    // Restore previously selected answer for that question (so UI shows it).
-    const existing = answers.find(
-      (a) => a.word === questions[nextCurrent]?.word,
-    );
+    const prev = current - 1;
+    setCurrent(prev);
+    const existing = answers.find((a) => a.word === questions[prev]?.word);
     setSelected(existing ? existing.chosen : null);
+  }
 
-    // When moving back, don't reveal correctness immediately.
-    setRevealAnswers(false);
+  function finishQuiz() {
+    const newBest = setBestForLevel(level, score);
+    const storedBest = getBestForLevel(level);
+    setIsNewBest(newBest);
+    setBestScore(storedBest);
+    setFinished(true);
+    updateUserScore(score);
+  }
+
+  async function updateUserScore(newScore: number) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      await fetch("http://localhost:4000/api/me/score", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ score: newScore }),
+      });
+    } catch {
+      // ignore — UI still works without backend
+    }
   }
 
   function handleRestart() {
@@ -131,147 +204,30 @@ export default function QuizMode() {
     setSelected(null);
     setScore(0);
     setAnswers([]);
-    setRevealAnswers(false);
-    setVisited([0]);
     setAwarded({});
+    setIsNewBest(false);
+    setBestScore(getBestForLevel(level));
     fetchQuestions();
   }
 
+  // ── Derived values ──────────────────────────────────────────────────────────
   const q = questions[current];
-  const pct =
-    questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
+  const total = questions.length;
+  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+  const progressPct = total > 0 ? ((current + 1) / total) * 100 : 0;
 
-  const levelStart = (level - 1) * 50;
-  const levelScore = Math.max(0, score);
-
-  // best highscore per level (localStorage)
-  const STORAGE_KEY = "bestHighScoreByLevel_v1";
-
-  const getBestForLevel = (lvl: number, currentGlobalScore?: number) => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    let map: Record<string, number> = {};
-    if (raw) {
-      try {
-        map = JSON.parse(raw) || {};
-      } catch {
-        map = {};
-      }
-    }
-
-    // Only show bests for levels <= current level (based on current global score)
-    if (typeof currentGlobalScore === "number") {
-      const maxLevel = Math.min(10, Math.floor(currentGlobalScore / 50) + 1);
-      if (lvl > maxLevel) return 0;
-    }
-
-    return map[String(lvl)] ?? 0;
-  };
-
-  const [meScore, setMeScore] = useState<number | null>(null);
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    const run = async () => {
-      try {
-        const res = await fetch("http://localhost:4000/api/me", {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const data: { user: { score: number } } = await res.json();
-        setMeScore(data.user.score ?? 0);
-      } catch {
-        // ignore
-      }
-    };
-    run();
-  }, []);
-
-  const computedLevelScore = (() => {
-    // Requirement: per-level starts from -50 starting from L2.
-    // With global score ranges of 50: L2 (50..99) => 0..49.
-    // That is effectively: globalScore - (level-1)*50, but never below 0.
-    if (meScore == null) return levelScore;
-    return Math.max(0, meScore - levelStart);
-  })();
-
-  const bestHighScoreThisLevel = getBestForLevel(level, meScore ?? undefined);
-
-  const updateBestForLevel = (lvl: number, nextLevelScore: number) => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    let map: Record<string, number> = {};
-    if (raw) {
-      try {
-        map = JSON.parse(raw) || {};
-      } catch {
-        map = {};
-      }
-    }
-
-    const prev = map[String(lvl)] ?? 0;
-
-    // Update rules (per your request):
-    // - If next is the same or higher than prev, replace stored best with next.
-    // - If next is lower than prev, do nothing.
-    // This prevents accumulated wrong values like 13 -> 34 -> 47.
-    const shouldUpdate = nextLevelScore >= prev;
-    map[String(lvl)] = shouldUpdate ? nextLevelScore : prev;
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-  };
-
-  const updateUserScore = async (delta: number) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    // Only update via backend when we have a valid endpoint.
-    // We keep it defensive: if backend doesn't support it, UI still works.
-    try {
-      await fetch("http://localhost:4000/api/me/score", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ delta }),
-      });
-    } catch {
-      // ignore
-    }
-  };
-
-  useEffect(() => {
-    if (!finished) return;
-
-    // 1) Update user score (backend if supported)
-    // Assumption: each correct answer grants +1 point (matches current UI).
-    updateUserScore(score);
-
-    // 2) Update best highscore per level (localStorage UI)
-    // Requirement: only reflect bests that are <= current global score.
-    // We compute the resulting level-relative score based on current global score.
-    if (meScore == null) {
-      updateBestForLevel(level, levelScore);
-      return;
-    }
-
-    // Use meScore + score (because we've just earned points).
-    const resultingGlobalScore = meScore + score;
-    const resultingLevelStart = (level - 1) * 50;
-    const resultingLevelRelativeScore = Math.max(
-      0,
-      resultingGlobalScore - resultingLevelStart,
-    );
-
-    updateBestForLevel(level, resultingLevelRelativeScore);
-  }, [finished, level, computedLevelScore, meScore, levelScore, score]);
-
+  // ── Loading / Error ─────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={styles.page}>
-        <div style={styles.container}>
-          <div style={styles.quizCard}>
-            <p style={{ textAlign: "center" }}>Loading questions...</p>
+      <div style={s.page}>
+        <div style={s.container}>
+          <div style={s.card}>
+            <div style={s.stripe} />
+            <div style={s.cardBody}>
+              <p style={{ textAlign: "center", color: "#888780", fontSize: 14 }}>
+                Loading questions…
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -280,126 +236,132 @@ export default function QuizMode() {
 
   if (error) {
     return (
-      <div style={styles.page}>
-        <div style={styles.container}>
-          <div style={styles.quizCard}>
-            <p style={{ color: "#A32D2D", textAlign: "center" }}>{error}</p>
-            <button
-              onClick={() => navigate("/dashboard")}
-              style={{ ...styles.btn, ...styles.btnGhost, marginTop: 12 }}
-            >
-              Back to Dashboard
-            </button>
+      <div style={s.page}>
+        <div style={s.container}>
+          <div style={s.card}>
+            <div style={s.stripe} />
+            <div style={s.cardBody}>
+              <p style={{ color: "#A32D2D", textAlign: "center", marginBottom: 16 }}>
+                {error}
+              </p>
+              <button onClick={() => navigate("/dashboard")} style={{ ...s.btn, ...s.btnGhost }}>
+                ← Back to Dashboard
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  // ── Results screen ──────────────────────────────────────────────────────────
   if (finished) {
     return (
-      <div style={styles.page}>
-        <div style={styles.container}>
-          <div style={styles.resultCard}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "1.5rem",
-              }}
-            >
-              <button
-                onClick={() => navigate("/dashboard")}
-                style={styles.backBtn}
-              >
-                ← Back
-              </button>
-              <h2
-                style={{
-                  ...styles.resultTitle,
-                  flex: 1,
-                  textAlign: "center",
-                  margin: 0,
-                }}
-              >
-                Quiz Complete!
-              </h2>
-            </div>
+      <div style={s.page}>
+        <div style={s.container}>
+          <div style={s.card}>
+            <div style={s.stripe} />
+            <div style={s.cardBody}>
 
-            <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-              <div style={{ fontSize: 48, marginBottom: "0.5rem" }}>
-                {pct >= 80 ? "🏆" : pct >= 50 ? "👍" : "📖"}
+              {/* Header */}
+              <div style={s.resultHeader}>
+                <h2 style={s.resultTitle}>Results</h2>
+                {isNewBest && (
+                  <span style={s.newBestBadge}>🏆 New best!</span>
+                )}
               </div>
-              <p style={styles.resultText}>
-                You scored <strong>{score}</strong> out of{" "}
-                <strong>{questions.length}</strong> — ({pct}%)
-              </p>
 
-              <div style={{ marginTop: 10 }}>
-                <p style={{ ...styles.resultText, margin: 0 }}>
-                  Level {level} score: <strong>{computedLevelScore}</strong>
-                  {meScore != null ? (
-                    <>
-                      {" "}
-                      / best: <strong>{bestHighScoreThisLevel}</strong>
-                    </>
-                  ) : null}
-                </p>
-              </div>
-            </div>
-
-            <div style={styles.answersList}>
-              {answers.map((a, i) => (
-                <div key={i} style={styles.answerRow}>
-                  <span
-                    style={{
-                      ...styles.answerIndicator,
-                      color: a.ok ? "#166534" : "#991b1b",
-                    }}
+              {/* SVG Ring */}
+              <div style={{ textAlign: "center", margin: "1.5rem 0" }}>
+                <div style={{ position: "relative", display: "inline-block", width: 120, height: 120 }}>
+                  <svg
+                    width="120"
+                    height="120"
+                    viewBox="0 0 120 120"
+                    style={{ transform: "rotate(-90deg)" }}
                   >
-                    {a.ok ? "✓" : "✗"}
-                  </span>
-                  <span style={styles.answerText}>
-                    {a.word}:{" "}
-                    {a.ok ? (
-                      a.correct
-                    ) : (
-                      <>
-                        <span
-                          style={{
-                            textDecoration: "line-through",
-                            color: "#991b1b",
-                          }}
-                        >
-                          {a.chosen}
-                        </span>{" "}
-                        → {a.correct}
-                      </>
-                    )}
-                  </span>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="#F1EFE8" strokeWidth="10" />
+                    <circle
+                      ref={ringRef}
+                      cx="60"
+                      cy="60"
+                      r="50"
+                      fill="none"
+                      stroke="#1D9E75"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      strokeDasharray="314"
+                      strokeDashoffset="314"
+                    />
+                  </svg>
+                  <div style={s.ringText}>
+                    <span style={s.ringPct}>{pct}%</span>
+                    <span style={s.ringSub}>
+                      {score}/{total}
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
 
-            <div style={{ marginTop: 12, textAlign: "center" }}>
-              <p style={{ margin: 0, fontSize: 13, color: "#888780" }}>
-                Best score card is stored per level.
-              </p>
-            </div>
+              {/* Stat cards */}
+              <div style={s.statsGrid}>
+                <div style={s.statCard}>
+                  <div style={s.statVal}>{score}</div>
+                  <div style={s.statLabel}>Correct</div>
+                </div>
+                <div style={s.statCard}>
+                  <div style={s.statVal}>{total - score}</div>
+                  <div style={s.statLabel}>Wrong</div>
+                </div>
+                <div style={s.statCard}>
+                  <div style={{ ...s.statVal, color: "#534AB7" }}>{bestScore}</div>
+                  <div style={s.statLabel}>Best score</div>
+                </div>
+              </div>
 
-            <div style={styles.actionsRow}>
-              <button
-                onClick={handleRestart}
-                style={{ ...styles.btn, ...styles.btnPrimary }}
-              >
-                Try Again
-              </button>
-              <button
-                onClick={() => navigate("/dashboard")}
-                style={{ ...styles.btn, ...styles.btnGhost }}
-              >
-                Back to Dashboard
-              </button>
+              {/* Answers list — correct answer revealed only here */}
+              <div style={{ marginBottom: "1.5rem" }}>
+                <p style={s.sectionLabel}>Question review</p>
+                {answers.map((a, i) => {
+                  const chosenText = a.chosen.replace(/^[A-D]\. /, "");
+                  return (
+                    <div key={i} style={s.answerRow}>
+                      <span style={{ ...s.ansIcon, ...(a.ok ? s.ansIconOk : s.ansIconBad) }}>
+                        {a.ok ? "✓" : "✗"}
+                      </span>
+                      <div>
+                        <div style={s.ansWord}>{a.word}</div>
+                        <div style={s.ansDetail}>
+                          {a.ok ? (
+                            <span style={{ color: "#0F6E56" }}>{a.correct}</span>
+                          ) : (
+                            <>
+                              <span style={{ textDecoration: "line-through", color: "#E24B4A" }}>
+                                {chosenText}
+                              </span>
+                              {" → "}
+                              <span style={{ color: "#0F6E56" }}>{a.correct}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Actions */}
+              <div style={s.actionsRow}>
+                <button onClick={handleRestart} style={{ ...s.btn, ...s.btnPrimary }}>
+                  ↺ Try Again
+                </button>
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  style={{ ...s.btn, ...s.btnGhost }}
+                >
+                  Dashboard
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -407,231 +369,309 @@ export default function QuizMode() {
     );
   }
 
+  // ── Quiz screen ─────────────────────────────────────────────────────────────
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
-        <div style={styles.quizCard}>
-          <div style={styles.header}>
-            <button
-              onClick={() => navigate("/dashboard")}
-              style={styles.backBtn}
-            >
-              ← Back
-            </button>
+    <div style={s.page}>
+      <div style={s.container}>
+        <div style={s.card}>
+          <div style={s.stripe} />
+          <div style={s.cardBody}>
 
-            {current > 0 ? (
-              <button onClick={handlePrev} style={styles.backBtn}>
-                ← Question
+            {/* Header */}
+            <div style={s.quizHeader}>
+              <button onClick={() => navigate("/dashboard")} style={s.backBtn}>
+                ← Back
               </button>
-            ) : (
-              <span style={{ width: 110 }} />
-            )}
-
-            <h2 style={styles.headerTitle}>Level {level} Quiz</h2>
-            <span style={styles.counter}>
-              Question {current + 1} of {questions.length}
-            </span>
-          </div>
-
-          <div style={styles.progressBarWrap}>
-            <div
-              style={{
-                ...styles.progressBar,
-                width: `${(current / questions.length) * 100}%`,
-              }}
-            />
-          </div>
-
-          <h3 style={styles.question}>What does "{q.word}" mean?</h3>
-
-          <div style={styles.optionsGrid}>
-            {q.options.map((opt) => {
-              const isSelected = selected === opt;
-              const isCorrectOption =
-                revealAnswers && opt.replace(/^[A-D]\. /, "") === q.answer;
-
-              return (
-                <button
-                  key={opt}
-                  onClick={() => handleSelect(opt)}
-                  disabled={!!selected}
-                  style={{
-                    ...styles.option,
-                    ...(revealAnswers && isCorrectOption
-                      ? styles.optionCorrect
-                      : {}),
-                    ...(isSelected && !isCorrectOption && revealAnswers
-                      ? styles.optionWrong
-                      : {}),
-                    ...(isSelected ? styles.optionSelected : {}),
-                  }}
-                >
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-
-          {selected && (
-            <div style={styles.nextBtnWrap}>
-              <button
-                onClick={handleNext}
-                style={{ ...styles.btn, ...styles.btnPrimary }}
-              >
-                {current + 1 >= questions.length
-                  ? "See Results"
-                  : "Next Question"}
-              </button>
+              <span style={s.levelBadge}>Level {level} Quiz</span>
+              <span style={s.qCounter}>
+                {current + 1} of {total}
+              </span>
             </div>
-          )}
+
+            {/* Progress bar */}
+            <div style={s.progressWrap}>
+              <div style={{ ...s.progressFill, width: `${progressPct}%` }} />
+            </div>
+
+            {/* Best Score Card */}
+            <div style={s.bestScoreCard}>
+              <span style={s.bestScoreTrophy}>🏆</span>
+              <div>
+                <div style={s.bestScoreLabel}>Best Score</div>
+                <div style={s.bestScoreVal}>
+                  {bestScore}
+                  <span style={s.bestScoreOf}> / {total || "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Question */}
+            <p style={s.questionLabel}>What does this word mean?</p>
+            <h3 style={s.questionText}>"{q.word}"</h3>
+
+            {/* Options — no correct/wrong reveal, user can re-select freely */}
+            <div style={s.optionsGrid}>
+              {q.options.map((opt, i) => {
+                const isSelected = selected === opt;
+
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => handleSelect(opt)}
+                    style={{
+                      ...s.optionBtn,
+                      ...(isSelected ? s.optionSelected : {}),
+                    }}
+                  >
+                    <span
+                      style={{
+                        ...s.optLetter,
+                        ...(isSelected ? s.optLetterSelected : {}),
+                      }}
+                    >
+                      {OPTION_LETTERS[i]}
+                    </span>
+                    <span style={{ lineHeight: 1.4 }}>{opt.replace(/^[A-D]\. /, "")}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next button — visible once any answer selected */}
+            {selected && (
+              <div style={{ marginTop: "1.25rem" }}>
+                <button onClick={handleNext} style={{ ...s.btn, ...s.btnPrimary }}>
+                  {current + 1 >= total ? "See Results" : "Next Question"} →
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Prev question link below card */}
+        {current > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <button onClick={handlePrev} style={s.prevBtn}>
+              ← Previous question
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+// ── Styles ────────────────────────────────────────────────────────────────────
+const s: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
     backgroundColor: "#f5f4f0",
-    padding: "24px 16px 48px",
+    padding: "24px 16px 64px",
+    fontFamily: "'DM Sans', sans-serif",
   },
   container: {
     maxWidth: 560,
     margin: "0 auto",
   },
-  quizCard: {
+
+  // Card
+  card: {
     background: "#fff",
     border: "0.5px solid #D3D1C7",
     borderRadius: 12,
+    overflow: "hidden",
+  },
+  stripe: {
+    height: 4,
+    background: "linear-gradient(90deg, #534AB7 0%, #1D9E75 100%)",
+  },
+  cardBody: {
     padding: "1.5rem",
   },
-  header: {
+
+  // Quiz header
+  quizHeader: {
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "1rem",
+    justifyContent: "space-between",
+    marginBottom: "1.25rem",
   },
   backBtn: {
     background: "none",
     border: "none",
-    color: "#3C3489",
-    fontSize: 14,
+    color: "#534AB7",
+    fontSize: 13,
     fontWeight: 500,
     cursor: "pointer",
-    padding: "0.25rem 0.5rem",
+    padding: "4px 6px",
     borderRadius: 6,
-    transition: "background 0.15s ease",
+    fontFamily: "inherit",
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 600,
-    margin: 0,
+  levelBadge: {
+    fontFamily: "'DM Serif Display', serif",
+    fontSize: 18,
+    color: "#2C2C2A",
   },
-  counter: {
-    fontSize: 13,
+  qCounter: {
+    fontSize: 12,
     color: "#888780",
-  },
-  progressBarWrap: {
-    height: 6,
     background: "#F1EFE8",
+    border: "0.5px solid #D3D1C7",
+    padding: "4px 10px",
     borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: "1.25rem",
   },
-  progressBar: {
+
+  // Progress
+  progressWrap: {
+    height: 5,
+    background: "#F1EFE8",
+    border: "0.5px solid #D3D1C7",
+    borderRadius: 10,
+    overflow: "hidden",
+    marginBottom: "1rem",
+  },
+  progressFill: {
     height: "100%",
     background: "#1D9E75",
-    transition: "width 0.3s ease",
+    borderRadius: 10,
+    transition: "width 0.4s cubic-bezier(.4,0,.2,1)",
   },
-  question: {
-    fontSize: 18,
+
+  // Best Score Card
+  bestScoreCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    background: "#F8F7FF",
+    border: "0.5px solid #C8C4F0",
+    borderRadius: 10,
+    padding: "0.65rem 1rem",
+    marginBottom: "1.25rem",
+  },
+  bestScoreTrophy: {
+    fontSize: 20,
+    lineHeight: 1,
+  },
+  bestScoreLabel: {
+    fontSize: 10,
     fontWeight: 500,
-    margin: "0 0 1rem",
-    lineHeight: 1.4,
+    letterSpacing: "0.07em",
+    textTransform: "uppercase" as const,
+    color: "#888780",
+    marginBottom: 1,
   },
+  bestScoreVal: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: "#534AB7",
+    lineHeight: 1,
+  },
+  bestScoreOf: {
+    fontSize: 12,
+    fontWeight: 400,
+    color: "#888780",
+  },
+
+  // Question
+  questionLabel: {
+    fontSize: 11,
+    fontWeight: 500,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase" as const,
+    color: "#888780",
+    marginBottom: 6,
+  },
+  questionText: {
+    fontFamily: "'DM Serif Display', serif",
+    fontSize: 24,
+    fontWeight: 400,
+    color: "#2C2C2A",
+    marginBottom: "1.5rem",
+    lineHeight: 1.3,
+  },
+
+  // Options
   optionsGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gap: 12,
+    gap: 10,
   },
-  option: {
-    padding: "1rem",
-    fontSize: 14,
-    fontWeight: 500,
-    border: "1px solid #D3D1C7",
-    borderRadius: 8,
-    background: "#fff",
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-    textAlign: "left" as const,
-  },
-  optionCorrect: {
-    background: "#E8F5E9",
-    borderColor: "#166534",
-    color: "#166534",
-  },
-  optionWrong: {
-    background: "#FFEBEE",
-    borderColor: "#991b1b",
-    color: "#991b1b",
-  },
-  optionSelected: {
-    background: "#EEF2FF",
-    borderColor: "#3C3489",
-    color: "#3C3489",
-  },
-
-  nextBtnWrap: {
-    marginTop: "1.5rem",
-  },
-  resultCard: {
-    background: "#fff",
-    border: "0.5px solid #D3D1C7",
-    borderRadius: 12,
-    padding: "1.5rem",
-  },
-  resultTitle: {
-    fontSize: 22,
-    fontWeight: 700,
-    margin: "0 0 6px",
-  },
-  resultText: {
-    fontSize: 14,
-    color: "#888780",
-    margin: 0,
-  },
-  answersList: {
-    marginBottom: "1.5rem",
-  },
-  answerRow: {
+  optionBtn: {
     display: "flex",
     alignItems: "flex-start",
-    gap: 8,
-    padding: "8px 0",
-    borderBottom: "1px solid #F1EFE8",
+    gap: 10,
+    padding: "0.875rem 1rem",
+    background: "#fff",
+    border: "0.5px solid #D3D1C7",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 13.5,
+    fontWeight: 400,
+    color: "#2C2C2A",
+    textAlign: "left" as const,
+    transition: "all 0.15s ease",
   },
-  answerIndicator: {
-    fontSize: 16,
-    fontWeight: 600,
+  optionSelected: {
+    background: "#EEEDFE",
+    borderColor: "#7F77DD",
+    color: "#3C3489",
+  },
+  // Kept for results screen — unused during active quiz
+  optionCorrect: {
+    background: "#E1F5EE",
+    borderColor: "#1D9E75",
+    color: "#085041",
+  },
+  optionWrong: {
+    background: "#FCEBEB",
+    borderColor: "#E24B4A",
+    color: "#791F1F",
+  },
+
+  // Letter badge
+  optLetter: {
+    width: 22,
+    height: 22,
     flexShrink: 0,
-    marginTop: 2,
-  },
-  answerText: {
-    fontSize: 13,
-  },
-  actionsRow: {
+    borderRadius: "50%",
+    border: "1px solid #D3D1C7",
     display: "flex",
-    gap: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 11,
+    fontWeight: 600,
+    color: "#5F5E5A",
+    marginTop: 1,
+    transition: "all 0.15s",
   },
+  optLetterSelected: {
+    background: "#3C3489",
+    borderColor: "#3C3489",
+    color: "#fff",
+  },
+  optLetterCorrect: {
+    background: "#1D9E75",
+    borderColor: "#1D9E75",
+    color: "#fff",
+  },
+  optLetterWrong: {
+    background: "#E24B4A",
+    borderColor: "#E24B4A",
+    color: "#fff",
+  },
+
+  // Buttons
   btn: {
-    flex: 1,
+    width: "100%",
     padding: "0.75rem 1rem",
     fontSize: 14,
     fontWeight: 500,
     borderRadius: 8,
     cursor: "pointer",
     border: "none",
+    fontFamily: "'DM Sans', sans-serif",
+    transition: "background 0.15s, transform 0.1s",
   },
   btnPrimary: {
     background: "#3C3489",
@@ -640,5 +680,144 @@ const styles: Record<string, React.CSSProperties> = {
   btnGhost: {
     background: "#F1EFE8",
     color: "#2C2C2A",
+    border: "0.5px solid #D3D1C7",
+  },
+
+  // Prev button
+  prevBtn: {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 13,
+    fontWeight: 500,
+    color: "#5F5E5A",
+    padding: "4px 6px",
+    borderRadius: 6,
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+  },
+
+  // Results
+  resultHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "0.5rem",
+  },
+  resultTitle: {
+    fontFamily: "'DM Serif Display', serif",
+    fontSize: 26,
+    fontWeight: 400,
+    color: "#2C2C2A",
+  },
+  newBestBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    background: "#FAEEDA",
+    border: "0.5px solid #FAC775",
+    borderRadius: 20,
+    padding: "3px 12px",
+    fontSize: 12,
+    fontWeight: 500,
+    color: "#633806",
+  },
+  ringText: {
+    position: "absolute" as const,
+    inset: 0,
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringPct: {
+    fontFamily: "'DM Serif Display', serif",
+    fontSize: 30,
+    color: "#2C2C2A",
+    lineHeight: 1,
+  },
+  ringSub: {
+    fontSize: 12,
+    color: "#888780",
+    marginTop: 2,
+  },
+
+  // Stat cards
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr",
+    gap: 10,
+    marginBottom: "1.5rem",
+  },
+  statCard: {
+    background: "#F1EFE8",
+    borderRadius: 8,
+    border: "0.5px solid #D3D1C7",
+    padding: "0.75rem",
+    textAlign: "center" as const,
+  },
+  statVal: {
+    fontSize: 22,
+    fontWeight: 600,
+    color: "#2C2C2A",
+  },
+  statLabel: {
+    fontSize: 11,
+    color: "#888780",
+    marginTop: 2,
+  },
+
+  // Answers
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: 500,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase" as const,
+    color: "#888780",
+    marginBottom: 10,
+  },
+  answerRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: "8px 0",
+    borderBottom: "0.5px solid #F1EFE8",
+    fontSize: 13,
+  },
+  ansIcon: {
+    width: 18,
+    height: 18,
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 10,
+    flexShrink: 0,
+    marginTop: 1,
+    fontWeight: 600,
+  },
+  ansIconOk: {
+    background: "#E1F5EE",
+    color: "#0F6E56",
+    border: "0.5px solid #1D9E75",
+  },
+  ansIconBad: {
+    background: "#FCEBEB",
+    color: "#E24B4A",
+    border: "0.5px solid #E24B4A",
+  },
+  ansWord: {
+    fontWeight: 500,
+    color: "#2C2C2A",
+  },
+  ansDetail: {
+    color: "#888780",
+    marginTop: 1,
+  },
+  actionsRow: {
+    display: "flex",
+    gap: 10,
   },
 };
