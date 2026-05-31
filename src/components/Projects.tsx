@@ -2,11 +2,23 @@ import React, { useState } from "react";
 
 const Projects: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
+  type Project = {
+    title: string;
+    description: string;
+    image: string;
+    technologies: string[];
+    liveUrl: string;
+    githubUrl: string;
+    collaboration: string;
+    images: string[];
+  };
+
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotAvailableModal, setShowNotAvailableModal] = useState(false);
 
-  const handleProjectClick = (project: any) => {
+  const handleProjectClick = (project: Project) => {
     setSelectedProject(project);
     setShowModal(true);
     setCurrentSlide(0);
@@ -24,7 +36,7 @@ const Projects: React.FC = () => {
 
   const handleLinkClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
-    url: string
+    url: string,
   ) => {
     if (url === "#") {
       e.preventDefault();
@@ -35,7 +47,7 @@ const Projects: React.FC = () => {
   const nextSlide = () => {
     if (selectedProject) {
       setCurrentSlide((prev) =>
-        prev === selectedProject.images.length - 1 ? 0 : prev + 1
+        prev === selectedProject.images.length - 1 ? 0 : prev + 1,
       );
     }
   };
@@ -43,7 +55,7 @@ const Projects: React.FC = () => {
   const prevSlide = () => {
     if (selectedProject) {
       setCurrentSlide((prev) =>
-        prev === 0 ? selectedProject.images.length - 1 : prev - 1
+        prev === 0 ? selectedProject.images.length - 1 : prev - 1,
       );
     }
   };
@@ -318,7 +330,7 @@ const Projects: React.FC = () => {
                             }
                             aria-label={`Slide ${imgIndex + 1}`}
                           ></button>
-                        )
+                        ),
                       )}
                     </div>
 
@@ -343,7 +355,7 @@ const Projects: React.FC = () => {
                               }}
                             />
                           </div>
-                        )
+                        ),
                       )}
                     </div>
 
@@ -386,7 +398,7 @@ const Projects: React.FC = () => {
                         >
                           {tech}
                         </span>
-                      )
+                      ),
                     )}
                   </div>
 

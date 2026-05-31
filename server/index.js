@@ -65,9 +65,40 @@ app.get('/api/me', requireAuth, async (req, res) => {
   return res.json({ user: req.user });
 });
 
+// Token-protected endpoint to update current user's score
+// Body: { delta: number }
+app.post('/api/me/score', requireAuth, async (req, res) => {
+  try {
+    const table = process.env.DB_TABLE || 'user';
+    const currentUserId = req.user.user_id;
+    const delta = Number(req.body?.delta);
+
+    if (!Number.isFinite(delta)) {
+      return res.status(400).json({ message: 'delta must be a number' });
+    }
+
+    await require('./db').pool.query(
+      `UPDATE \`${table}\` SET score = score + ? WHERE user_id = ?`,
+      [delta, currentUserId]
+    );
+
+    const [scoreRows] = await require('./db').pool.query(
+      `SELECT score FROM \`${table}\` WHERE user_id = ? LIMIT 1`,
+      [currentUserId]
+    );
+    const nextScore = Number(scoreRows[0]?.score ?? 0);
+
+    return res.json({ ok: true, score: nextScore });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err?.message });
+  }
+});
+
 // Token-protected endpoint to get leaderboard rank for current user
 // Returns: { totalUsers, rank }
 app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
+
   try {
     const table = process.env.DB_TABLE || 'user';
     const currentUserId = req.user.user_id;

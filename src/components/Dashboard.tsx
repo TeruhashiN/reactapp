@@ -91,8 +91,9 @@ export default function Dashboard() {
         }
         const lbData: { totalUsers: number; rank: number } = await lbRes.json();
         setLeaderboard(lbData);
-      } catch (e: any) {
-        setError(e?.message || "Failed to load user");
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Failed to load user";
+        setError(msg);
         setMe(null);
       } finally {
         setLoading(false);
