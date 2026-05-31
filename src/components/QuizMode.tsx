@@ -58,7 +58,8 @@ export default function QuizMode() {
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
-  const [awarded, setAwarded] = useState<Record<number, boolean>>({});
+  const [, setAwarded] = useState<Record<number, boolean>>({});
+
   const [isNewBest, setIsNewBest] = useState(false);
   const [bestScore, setBestScore] = useState(0);
 
@@ -72,7 +73,7 @@ export default function QuizMode() {
     setError(null);
     try {
       const res = await fetch(
-        `http://localhost:4000/api/quiz/questions?level=${level}&limit=50`
+        `http://localhost:4000/api/quiz/questions?level=${level}&limit=50`,
       );
       if (!res.ok) throw new Error("Failed to fetch questions");
       const data = await res.json();
@@ -111,39 +112,40 @@ export default function QuizMode() {
   }, [finished, score, questions.length]);
 
   function handleSelect(opt: string) {
-    // Allow re-selection: no early return if already selected
+    // Allow re-selection: user can freely change their choice per question.
     const q = questions[current];
+    if (!q) return;
+
     const chosenText = opt.replace(/^[A-D]\. /, "");
     const ok = chosenText === q.answer;
 
-    // If switching answer, revoke previously awarded point
-    const wasPreviouslyAwarded = awarded[current];
-    const previousAnswer = answers.find((a) => a.word === q.word);
-    const isSwitching = previousAnswer && previousAnswer.chosen !== opt;
+    // Determine previous correctness for this question using current state snapshot.
+    // This avoids relying on `awarded` from a stale render.
+    const prevCorrect = Boolean(answers.find((a) => a.word === q.word)?.ok);
 
     setSelected(opt);
 
     setAwarded((prev) => {
       const next = { ...prev };
-      if (ok) {
-        // Award point (or keep it)
-        if (!prev[current]) {
-          setScore((s) => s + 1);
-        }
-        next[current] = true;
-      } else {
-        // Wrong answer: if previously awarded, deduct
-        if (wasPreviouslyAwarded && isSwitching) {
-          setScore((s) => s - 1);
-        }
-        next[current] = false;
-      }
+      next[current] = ok;
       return next;
+    });
+
+    // Update score exactly once based on correctness transition.
+    setScore((s) => {
+      if (!prevCorrect && ok) return s + 1;
+      if (prevCorrect && !ok) return s - 1;
+      return s;
     });
 
     setAnswers((prev) => {
       const idx = prev.findIndex((a) => a.word === q.word);
-      const rec: AnswerRecord = { word: q.word, chosen: opt, correct: q.answer, ok };
+      const rec: AnswerRecord = {
+        word: q.word,
+        chosen: opt,
+        correct: q.answer,
+        ok,
+      };
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = rec;
@@ -178,23 +180,28 @@ export default function QuizMode() {
     setIsNewBest(newBest);
     setBestScore(storedBest);
     setFinished(true);
+    // Persist score to backend (server expects delta).
+    // Backend response may fail; UI should still work.
     updateUserScore(score);
   }
 
-  async function updateUserScore(newScore: number) {
+  async function updateUserScore(newScore: number): Promise<boolean> {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) return false;
     try {
-      await fetch("http://localhost:4000/api/me/score", {
+      const res = await fetch("http://localhost:4000/api/me/score", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ score: newScore }),
+        // server expects: { delta: number }
+        body: JSON.stringify({ delta: newScore }),
       });
+      return res.ok;
     } catch {
       // ignore — UI still works without backend
+      return false;
     }
   }
 
@@ -224,7 +231,9 @@ export default function QuizMode() {
           <div style={s.card}>
             <div style={s.stripe} />
             <div style={s.cardBody}>
-              <p style={{ textAlign: "center", color: "#888780", fontSize: 14 }}>
+              <p
+                style={{ textAlign: "center", color: "#888780", fontSize: 14 }}
+              >
                 Loading questions…
               </p>
             </div>
@@ -241,10 +250,19 @@ export default function QuizMode() {
           <div style={s.card}>
             <div style={s.stripe} />
             <div style={s.cardBody}>
-              <p style={{ color: "#A32D2D", textAlign: "center", marginBottom: 16 }}>
+              <p
+                style={{
+                  color: "#A32D2D",
+                  textAlign: "center",
+                  marginBottom: 16,
+                }}
+              >
                 {error}
               </p>
-              <button onClick={() => navigate("/dashboard")} style={{ ...s.btn, ...s.btnGhost }}>
+              <button
+                onClick={() => navigate("/dashboard")}
+                style={{ ...s.btn, ...s.btnGhost }}
+              >
                 ← Back to Dashboard
               </button>
             </div>
@@ -262,25 +280,36 @@ export default function QuizMode() {
           <div style={s.card}>
             <div style={s.stripe} />
             <div style={s.cardBody}>
-
               {/* Header */}
               <div style={s.resultHeader}>
                 <h2 style={s.resultTitle}>Results</h2>
-                {isNewBest && (
-                  <span style={s.newBestBadge}>🏆 New best!</span>
-                )}
+                {isNewBest && <span style={s.newBestBadge}>🏆 New best!</span>}
               </div>
 
               {/* SVG Ring */}
               <div style={{ textAlign: "center", margin: "1.5rem 0" }}>
-                <div style={{ position: "relative", display: "inline-block", width: 120, height: 120 }}>
+                <div
+                  style={{
+                    position: "relative",
+                    display: "inline-block",
+                    width: 120,
+                    height: 120,
+                  }}
+                >
                   <svg
                     width="120"
                     height="120"
                     viewBox="0 0 120 120"
                     style={{ transform: "rotate(-90deg)" }}
                   >
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="#F1EFE8" strokeWidth="10" />
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="50"
+                      fill="none"
+                      stroke="#F1EFE8"
+                      strokeWidth="10"
+                    />
                     <circle
                       ref={ringRef}
                       cx="60"
@@ -314,7 +343,9 @@ export default function QuizMode() {
                   <div style={s.statLabel}>Wrong</div>
                 </div>
                 <div style={s.statCard}>
-                  <div style={{ ...s.statVal, color: "#534AB7" }}>{bestScore}</div>
+                  <div style={{ ...s.statVal, color: "#534AB7" }}>
+                    {bestScore}
+                  </div>
                   <div style={s.statLabel}>Best score</div>
                 </div>
               </div>
@@ -326,21 +357,35 @@ export default function QuizMode() {
                   const chosenText = a.chosen.replace(/^[A-D]\. /, "");
                   return (
                     <div key={i} style={s.answerRow}>
-                      <span style={{ ...s.ansIcon, ...(a.ok ? s.ansIconOk : s.ansIconBad) }}>
+                      <span
+                        style={{
+                          ...s.ansIcon,
+                          ...(a.ok ? s.ansIconOk : s.ansIconBad),
+                        }}
+                      >
                         {a.ok ? "✓" : "✗"}
                       </span>
                       <div>
                         <div style={s.ansWord}>{a.word}</div>
                         <div style={s.ansDetail}>
                           {a.ok ? (
-                            <span style={{ color: "#0F6E56" }}>{a.correct}</span>
+                            <span style={{ color: "#0F6E56" }}>
+                              {a.correct}
+                            </span>
                           ) : (
                             <>
-                              <span style={{ textDecoration: "line-through", color: "#E24B4A" }}>
+                              <span
+                                style={{
+                                  textDecoration: "line-through",
+                                  color: "#E24B4A",
+                                }}
+                              >
                                 {chosenText}
                               </span>
                               {" → "}
-                              <span style={{ color: "#0F6E56" }}>{a.correct}</span>
+                              <span style={{ color: "#0F6E56" }}>
+                                {a.correct}
+                              </span>
                             </>
                           )}
                         </div>
@@ -352,7 +397,10 @@ export default function QuizMode() {
 
               {/* Actions */}
               <div style={s.actionsRow}>
-                <button onClick={handleRestart} style={{ ...s.btn, ...s.btnPrimary }}>
+                <button
+                  onClick={handleRestart}
+                  style={{ ...s.btn, ...s.btnPrimary }}
+                >
                   ↺ Try Again
                 </button>
                 <button
@@ -376,7 +424,6 @@ export default function QuizMode() {
         <div style={s.card}>
           <div style={s.stripe} />
           <div style={s.cardBody}>
-
             {/* Header */}
             <div style={s.quizHeader}>
               <button onClick={() => navigate("/dashboard")} style={s.backBtn}>
@@ -431,7 +478,9 @@ export default function QuizMode() {
                     >
                       {OPTION_LETTERS[i]}
                     </span>
-                    <span style={{ lineHeight: 1.4 }}>{opt.replace(/^[A-D]\. /, "")}</span>
+                    <span style={{ lineHeight: 1.4 }}>
+                      {opt.replace(/^[A-D]\. /, "")}
+                    </span>
                   </button>
                 );
               })}
@@ -440,7 +489,10 @@ export default function QuizMode() {
             {/* Next button — visible once any answer selected */}
             {selected && (
               <div style={{ marginTop: "1.25rem" }}>
-                <button onClick={handleNext} style={{ ...s.btn, ...s.btnPrimary }}>
+                <button
+                  onClick={handleNext}
+                  style={{ ...s.btn, ...s.btnPrimary }}
+                >
                   {current + 1 >= total ? "See Results" : "Next Question"} →
                 </button>
               </div>
