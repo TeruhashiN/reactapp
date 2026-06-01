@@ -15,35 +15,43 @@ type AnswerRecord = {
   ok: boolean;
 };
 
-// ── Score storage helpers ─────────────────────────────────────────────────────
-const STORAGE_KEY = "bestHighScoreByLevel_v1";
-
-function getBestForLevel(lvl: number): number {
+async function fetchBestForLevel(level: number): Promise<number> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const map: Record<string, number> = raw ? JSON.parse(raw) : {};
-    return map[String(lvl)] ?? 0;
+    const token = localStorage.getItem("token");
+    if (!token) return 0;
+    const res = await fetch(`http://localhost:4000/api/me/scores`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return 0;
+    const data = await res.json();
+    const entry = data.scores.find((s: { level: number }) => s.level === level);
+    return entry?.best_score ?? 0;
   } catch {
     return 0;
   }
 }
 
-function setBestForLevel(lvl: number, newScore: number): boolean {
+async function saveLevelScore(
+  token: string,
+  level: number,
+  score: number,
+): Promise<{ ok: boolean; total: number }> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const map: Record<string, number> = raw ? JSON.parse(raw) : {};
-    const prev = map[String(lvl)] ?? 0;
-    if (newScore > prev) {
-      map[String(lvl)] = newScore;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-      return true;
-    }
-    return false;
+    const res = await fetch(`http://localhost:4000/api/me/level-score`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ level, score }),
+    });
+    if (!res.ok) return { ok: false, total: 0 };
+    const data = await res.json();
+    return { ok: true, total: data.total };
   } catch {
-    return false;
+    return { ok: false, total: 0 };
   }
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
 const OPTION_LETTERS = ["A", "B", "C", "D"];
 
@@ -89,9 +97,9 @@ export default function QuizMode() {
     fetchQuestions();
   }, [fetchQuestions]);
 
-  // Load best score on mount
+  // Load best score from server on mount
   useEffect(() => {
-    setBestScore(getBestForLevel(level));
+    fetchBestForLevel(level).then(setBestScore);
   }, [level]);
 
   // Animate the SVG ring when results are shown
@@ -174,34 +182,20 @@ export default function QuizMode() {
     setSelected(existing ? existing.chosen : null);
   }
 
-  function finishQuiz() {
-    const newBest = setBestForLevel(level, score);
-    const storedBest = getBestForLevel(level);
-    setIsNewBest(newBest);
-    setBestScore(storedBest);
-    setFinished(true);
-    // Persist score to backend (server expects delta).
-    // Backend response may fail; UI should still work.
-    updateUserScore(score);
-  }
-
-  async function updateUserScore(newScore: number): Promise<boolean> {
+  async function finishQuiz() {
     const token = localStorage.getItem("token");
-    if (!token) return false;
-    try {
-      const res = await fetch("http://localhost:4000/api/me/score", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        // server expects: { delta: number }
-        body: JSON.stringify({ delta: newScore }),
-      });
-      return res.ok;
-    } catch {
-      // ignore — UI still works without backend
-      return false;
+    let storedBest = 0;
+    if (token) {
+      const r = await fetchBestForLevel(level);
+      storedBest = r;
+    }
+    const newBest = score > storedBest;
+    setIsNewBest(newBest);
+    setBestScore(score > storedBest ? score : storedBest);
+    setFinished(true);
+    if (token && newBest) {
+      const result = await saveLevelScore(token, level, score);
+      setIsNewBest(result.ok);
     }
   }
 

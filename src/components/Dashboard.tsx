@@ -80,7 +80,6 @@ export default function Dashboard() {
         const data: MeResponse = await res.json();
         setMe(data.user);
 
-        // fetch leaderboard rank for the logged-in user
         const lbRes = await fetch("http://localhost:4000/api/leaderboard/me", {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
@@ -208,22 +207,16 @@ export default function Dashboard() {
             </span>
           </div>
           <div style={styles.levelGrid}>
-            {Array.from({ length: 10 }).map((_, idx) => {
+            {Array.from({ length: derived.level }).map((_, idx) => {
               const lvl = idx + 1;
-              const unlocked = lvl <= derived.level;
               const isCurrent = lvl === derived.level;
               return (
                 <button
                   key={lvl}
-                  disabled={!unlocked}
                   onClick={() => navigate(`/quiz-mode?level=${lvl}`)}
                   style={{
                     ...styles.lvlBtn,
-                    ...(isCurrent
-                      ? styles.lvlBtnCurrent
-                      : unlocked
-                        ? styles.lvlBtnUnlocked
-                        : styles.lvlBtnLocked),
+                    ...(isCurrent ? styles.lvlBtnCurrent : styles.lvlBtnUnlocked),
                   }}
                 >
                   {isCurrent ? "👑 " : ""}L{lvl}
@@ -610,13 +603,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#fff",
     color: "#444441",
     borderColor: "#B4B2A9",
-  },
-  lvlBtnLocked: {
-    background: "#F1EFE8",
-    color: "#B4B2A9",
-    borderColor: "#D3D1C7",
-    cursor: "default",
-    opacity: 0.5,
   },
 
   /* Section buttons */

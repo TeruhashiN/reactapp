@@ -3,22 +3,19 @@ const cors = require('cors');
 require('dotenv').config();
 
 const jwt = require('jsonwebtoken');
-const { getUserByUsername } = require('./db');
+const { createTables, getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore } = require('./db');
 const { requireAuth } = require('./auth');
 
 const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
-
-// Basic JSON body parsing + CORS
-// Endpoints:
-//  POST /api/login  -> { token, user }
-//  GET  /api/me     -> { user } (Bearer token required)
 app.use(express.json());
 
 app.get('/health', (req, res) => {
   res.json({ ok: true });
 });
+
+createTables().catch(err => console.error('Failed to create tables:', err));
 
 app.post('/api/login', async (req, res) => {
   try {
@@ -32,23 +29,24 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
-    // NOTE: This assumes your DB password column stores the plain password.
-    // If you store a hash instead, replace this with bcrypt/argon2 verification.
     if (user.password !== password) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
+    const total = await getTotalScore(user.user_id);
+    const level = Math.min(10, Math.floor(total / 50) + 1);
+
     const payload = {
       user_id: user.user_id,
       username: user.username,
-      score: user.score,
+      score: total,
+      level,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
     return res.json({ token, user: payload });
   } catch (err) {
     console.error(err);
-    // Surface actual MySQL error details to diagnose DB_NAME/table/columns.
     return res.status(500).json({
       message: 'Server error',
       error: err?.message,
@@ -59,64 +57,42 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-
-// Token-protected endpoint to get current user
 app.get('/api/me', requireAuth, async (req, res) => {
-  return res.json({ user: req.user });
+  const user = await getUserById(req.user.user_id);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  const total = await getTotalScore(req.user.user_id);
+  const level = Math.min(10, Math.floor(total / 50) + 1);
+  return res.json({ user: { ...user, score: total, level } });
 });
 
-// Token-protected endpoint to update current user's score
-// Body: { delta: number }
-app.post('/api/me/score', requireAuth, async (req, res) => {
-  try {
-    const table = process.env.DB_TABLE || 'user';
-    const currentUserId = req.user.user_id;
-    const delta = Number(req.body?.delta);
+app.get('/api/me/scores', requireAuth, async (req, res) => {
+  const scores = await getLevelScores(req.user.user_id);
+  return res.json({ scores });
+});
 
-    if (!Number.isFinite(delta)) {
-      return res.status(400).json({ message: 'delta must be a number' });
-    }
-
-    await require('./db').pool.query(
-      `UPDATE \`${table}\` SET score = score + ? WHERE user_id = ?`,
-      [delta, currentUserId]
-    );
-
-    const [scoreRows] = await require('./db').pool.query(
-      `SELECT score FROM \`${table}\` WHERE user_id = ? LIMIT 1`,
-      [currentUserId]
-    );
-    const nextScore = Number(scoreRows[0]?.score ?? 0);
-
-    return res.json({ ok: true, score: nextScore });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Server error', error: err?.message });
+app.post('/api/me/level-score', requireAuth, async (req, res) => {
+  const level = Number(req.body?.level);
+  const score = Number(req.body?.score);
+  if (!Number.isInteger(level) || level < 1 || !Number.isInteger(score) || score < 0) {
+    return res.status(400).json({ message: 'level and positive score are required' });
   }
+  await setLevelScore(req.user.user_id, level, score);
+  const total = await getTotalScore(req.user.user_id);
+  return res.json({ ok: true, total });
 });
 
-// Token-protected endpoint to get leaderboard rank for current user
-// Returns: { totalUsers, rank }
 app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
-
   try {
     const table = process.env.DB_TABLE || 'user';
     const currentUserId = req.user.user_id;
 
-    // total users
     const [totalRows] = await require('./db').pool.query(`SELECT COUNT(*) AS total FROM \`${table}\``);
     const totalUsers = Number(totalRows[0]?.total ?? 0);
 
-    // score for current user
-    const [scoreRows] = await require('./db').pool.query(
-      `SELECT score FROM \`${table}\` WHERE user_id = ? LIMIT 1`,
-      [currentUserId]
-    );
-    const myScore = Number(scoreRows[0]?.score ?? 0);
+    const myScore = await getTotalScore(currentUserId);
 
-    // Rank by ordering score DESC. Tie handling: rank = 1 + number of users with score > myScore
     const [rankRows] = await require('./db').pool.query(
-      `SELECT COUNT(*) AS higher FROM \`${table}\` WHERE score > ?`,
+      `SELECT COUNT(*) AS higher FROM level_scores WHERE user_id IN (SELECT user_id FROM \`${table}\`) AND best_score > ?`,
       [myScore]
     );
     const higher = Number(rankRows[0]?.higher ?? 0);
@@ -129,13 +105,8 @@ app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
   }
 });
 
-// Dictionary data (English): returns rows from `english` table.
-// Columns: words (word), meaning, chinese.
-// Sorting is done A->Z by `words`.
 app.get('/api/dictionary/english', async (req, res) => {
   try {
-    // DB credentials are expected in env vars.
-    // If env vars are missing, mysql2 will error; we surface a clear message.
     console.log('DB_HOST:', process.env.DB_HOST);
     console.log('DB_USER:', process.env.DB_USER);
     console.log('DB_NAME:', process.env.DB_NAME);
@@ -148,18 +119,13 @@ app.get('/api/dictionary/english', async (req, res) => {
 
     const table = 'english';
 
-    // Try common column names. Your error says the query tried to select `english`.
-    // We'll detect the actual column set from MySQL metadata.
     const [columns] = await require('./db').pool.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
       [process.env.DB_NAME, table]
     );
 
     const colNames = columns.map((c) => c.COLUMN_NAME);
-    const hasEnglish = colNames.includes('english');
-    const hasWords = colNames.includes('words');
-
-    const englishCol = hasEnglish ? 'english' : 'words';
+    const englishCol = colNames.includes('english') ? 'english' : 'words';
 
     const [rows] = await require('./db').pool.query(
       `SELECT \`${englishCol}\` AS english, meaning, chinese FROM \`${table}\` ORDER BY \`${englishCol}\` ASC`
@@ -174,71 +140,53 @@ app.get('/api/dictionary/english', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({
-      message: 'Server error',
-      error: err?.message,
-      code: err?.code,
-      errno: err?.errno,
-      sqlState: err?.sqlState,
-    });
+    return res.status(500).json({ message: 'Server error', error: err?.message });
   }
 });
-
 
 function shuffle(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-// Quiz questions by level (fetches words from english table)
-// Returns: { questions: [{ word, meaning }, ...] }
-// Each level has 50 questions (level 1: 1-50, level 2: 51-100, etc.)
-// Options are randomly shuffled for each question
 app.get('/api/quiz/questions', async (req, res) => {
   try {
     const level = parseInt(req.query.level || '1', 10);
     const limit = Math.min(parseInt(req.query.limit || '50', 10), 50);
     const levelStart = (level - 1) * 50 + 1;
     const levelEnd = level * 50;
-    
+
     if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {
-      return res.status(500).json({
-        message: 'Database not configured.',
-      });
+      return res.status(500).json({ message: 'Database not configured.' });
     }
 
     const table = 'english';
-    
-    // Detect columns in the english table
+
     const [columns] = await require('./db').pool.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
       [process.env.DB_NAME, table]
     );
     const colNames = columns.map((c) => c.COLUMN_NAME);
     const hasId = colNames.includes('id');
-    
-    // Build query based on whether id column exists
+
     let questionQuery;
     let queryParams;
-    
+
     if (hasId) {
-      // Use auto-increment id for proper alignment
       questionQuery = `SELECT words AS word, meaning FROM \`${table}\` WHERE id BETWEEN ? AND ? AND meaning IS NOT NULL AND meaning != '' ORDER BY RAND()`;
       queryParams = [levelStart, levelEnd];
     } else {
-      // Fallback: use OFFSET (less precise alignment)
       const offset = (level - 1) * 50;
       questionQuery = `SELECT words AS word, meaning FROM \`${table}\` WHERE meaning IS NOT NULL AND meaning != '' ORDER BY words ASC LIMIT ? OFFSET ?`;
       queryParams = [limit, offset];
     }
-    
+
     const [rows] = await require('./db').pool.query(questionQuery, queryParams);
 
-    // Generate options: correct meaning + 3 random distractors
     const allMeanings = await require('./db').pool.query(
       `SELECT meaning FROM \`${table}\` WHERE meaning IS NOT NULL AND meaning != ''`
     );
     const allMeaningValues = allMeanings[0].map((r) => r.meaning);
-    
+
     const questions = rows.map((q, idx) => {
       const distractors = shuffle(allMeaningValues.filter(m => m !== q.meaning)).slice(0, 3);
       const options = shuffle([...distractors, q.meaning]);
@@ -253,10 +201,7 @@ app.get('/api/quiz/questions', async (req, res) => {
     return res.json({ questions });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({
-      message: 'Server error',
-      error: err?.message,
-    });
+    return res.status(500).json({ message: 'Server error', error: err?.message });
   }
 });
 
@@ -264,4 +209,3 @@ const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`Auth server listening on http://localhost:${port}`);
 });
-
