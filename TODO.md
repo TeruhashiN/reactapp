@@ -1,5 +1,0 @@
-- [x] Update `LocalMultiplayer` to eliminate a player when their timer hits 0 (mark them out)
-- [x] Keep the match running until only 1 or 0 players remain not-out
-- [x] Skip out players when selecting the active player / advancing turns
-- [x] Update winner/draw calculation on the Game Over screen to consider only not-out players
-- [x] Verify timer interval and restart behavior

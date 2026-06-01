@@ -312,10 +312,24 @@ app.get('/api/quiz/questions', async (req, res) => {
       questionQuery = `SELECT words AS word, meaning FROM \`${table}\` WHERE id BETWEEN ? AND ? AND meaning IS NOT NULL AND meaning != '' ORDER BY RAND()`;
       queryParams = [levelStart, levelEnd];
     } else {
+      // No stable row index exists in DB (no `id` column).
+      // We approximate per-level slicing using alphabetical ordering of `words`.
+      // Then we randomize the *selected* 25 questions for that level.
       const offset = (level - 1) * 25;
-      questionQuery = `SELECT words AS word, meaning FROM \`${table}\` WHERE meaning IS NOT NULL AND meaning != '' ORDER BY words ASC LIMIT ? OFFSET ?`;
+      questionQuery = `
+        SELECT word, meaning FROM (
+          SELECT words AS word, meaning
+          FROM \`${table}\`
+          WHERE meaning IS NOT NULL AND meaning != ''
+          ORDER BY words ASC
+          LIMIT ? OFFSET ?
+        ) AS lvl
+        ORDER BY RAND()
+      `;
       queryParams = [limit, offset];
     }
+
+
 
     const [rows] = await pool.query(questionQuery, queryParams);
 
