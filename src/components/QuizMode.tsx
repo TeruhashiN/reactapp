@@ -199,7 +199,7 @@ export default function QuizMode() {
     }
   }
 
-  function handleRestart() {
+  async function handleRestart() {
     setFinished(false);
     setCurrent(0);
     setSelected(null);
@@ -207,7 +207,8 @@ export default function QuizMode() {
     setAnswers([]);
     setAwarded({});
     setIsNewBest(false);
-    setBestScore(getBestForLevel(level));
+    const best = await fetchBestForLevel(level);
+    setBestScore(best);
     fetchQuestions();
   }
 
@@ -278,6 +279,7 @@ export default function QuizMode() {
               <div style={s.resultHeader}>
                 <h2 style={s.resultTitle}>Results</h2>
                 {isNewBest && <span style={s.newBestBadge}>🏆 New best!</span>}
+                
               </div>
 
               {/* SVG Ring */}

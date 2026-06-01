@@ -11,37 +11,41 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
+const TABLE = () => process.env.DB_TABLE || 'user';
+
 async function getUserByUsername(username) {
-  const table = process.env.DB_TABLE || 'user';
   const [rows] = await pool.query(
-    `SELECT user_id, username, password, score FROM \`${table}\` WHERE username = ? LIMIT 1`,
+    `SELECT user_id, username, password, score FROM \`${TABLE()}\` WHERE username = ? LIMIT 1`,
     [username]
   );
   return rows[0] || null;
 }
 
 async function getUserById(userId) {
-  const table = process.env.DB_TABLE || 'user';
   const [rows] = await pool.query(
-    `SELECT user_id, username, score FROM \`${table}\` WHERE user_id = ? LIMIT 1`,
+    `SELECT user_id, username, score FROM \`${TABLE()}\` WHERE user_id = ? LIMIT 1`,
     [userId]
   );
   return rows[0] || null;
 }
 
 async function getLevelScores(userId) {
-  const table = 'level_scores';
   const [rows] = await pool.query(
-    `SELECT level, best_score FROM \`${table}\` WHERE user_id = ? ORDER BY level ASC`,
+    `SELECT level, best_score FROM level_scores WHERE user_id = ? ORDER BY level ASC`,
     [userId]
   );
-  return rows;
+  return rows.map((r) => ({ level: r.level, best_score: Number(r.best_score) }));
 }
 
 async function setLevelScore(userId, level, score) {
-  const table = 'level_scores';
+  const [existing] = await pool.query(
+    `SELECT best_score FROM level_scores WHERE user_id = ? AND level = ? LIMIT 1`,
+    [userId, level]
+  );
+  const existingScore = Number(existing[0]?.best_score ?? 0);
+  if (score <= existingScore) return;
   await pool.query(
-    `INSERT INTO \`${table}\` (user_id, level, best_score) VALUES (?, ?, ?)
+    `INSERT INTO level_scores (user_id, level, best_score) VALUES (?, ?, ?)
      ON DUPLICATE KEY UPDATE best_score = GREATEST(best_score, VALUES(best_score))`,
     [userId, level, score]
   );
@@ -49,10 +53,10 @@ async function setLevelScore(userId, level, score) {
 
 async function getTotalScore(userId) {
   const [rows] = await pool.query(
-    `SELECT COALESCE(SUM(best_score), 0) AS total FROM level_scores WHERE user_id = ?`,
+    `SELECT SUM(best_score) AS total FROM level_scores WHERE user_id = ?`,
     [userId]
   );
-  return Number(rows[0].total);
+  return Number(rows[0]?.total ?? 0);
 }
 
 async function createTables() {
@@ -67,4 +71,3 @@ async function createTables() {
 }
 
 module.exports = { getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore, createTables, pool };
-

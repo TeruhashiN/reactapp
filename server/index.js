@@ -5,6 +5,7 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const { createTables, getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore } = require('./db');
 const { requireAuth } = require('./auth');
+const { pool } = require('./db');
 
 const app = express();
 
@@ -66,8 +67,11 @@ app.get('/api/me', requireAuth, async (req, res) => {
 });
 
 app.get('/api/me/scores', requireAuth, async (req, res) => {
-  const scores = await getLevelScores(req.user.user_id);
-  return res.json({ scores });
+  const level = Number(req.query.level ?? 1);
+  const total = await getTotalScore(req.user.user_id);
+  const bestLevel = Math.min(10, Math.floor(total / 50) + 1);
+  const bestScore = level <= bestLevel ? total : 0;
+  return res.json({ scores: [{ level, best_score: bestScore }] });
 });
 
 app.post('/api/me/level-score', requireAuth, async (req, res) => {
@@ -86,13 +90,15 @@ app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
     const table = process.env.DB_TABLE || 'user';
     const currentUserId = req.user.user_id;
 
-    const [totalRows] = await require('./db').pool.query(`SELECT COUNT(*) AS total FROM \`${table}\``);
+    const [totalRows] = await pool.query(
+      `SELECT COUNT(*) AS total FROM \`${table}\``
+    );
     const totalUsers = Number(totalRows[0]?.total ?? 0);
 
     const myScore = await getTotalScore(currentUserId);
 
-    const [rankRows] = await require('./db').pool.query(
-      `SELECT COUNT(*) AS higher FROM level_scores WHERE user_id IN (SELECT user_id FROM \`${table}\`) AND best_score > ?`,
+    const [rankRows] = await pool.query(
+      `SELECT COUNT(*) AS higher FROM \`${table}\` WHERE score > ?`,
       [myScore]
     );
     const higher = Number(rankRows[0]?.higher ?? 0);
@@ -107,19 +113,15 @@ app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
 
 app.get('/api/dictionary/english', async (req, res) => {
   try {
-    console.log('DB_HOST:', process.env.DB_HOST);
-    console.log('DB_USER:', process.env.DB_USER);
-    console.log('DB_NAME:', process.env.DB_NAME);
     if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {
       return res.status(500).json({
-        message:
-          'Database not configured. Please set DB_HOST/DB_USER/DB_PASSWORD/DB_NAME in server env.',
+        message: 'Database not configured. Please set DB_HOST/DB_USER/DB_PASSWORD/DB_NAME in server env.',
       });
     }
 
     const table = 'english';
 
-    const [columns] = await require('./db').pool.query(
+    const [columns] = await pool.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
       [process.env.DB_NAME, table]
     );
@@ -127,7 +129,7 @@ app.get('/api/dictionary/english', async (req, res) => {
     const colNames = columns.map((c) => c.COLUMN_NAME);
     const englishCol = colNames.includes('english') ? 'english' : 'words';
 
-    const [rows] = await require('./db').pool.query(
+    const [rows] = await pool.query(
       `SELECT \`${englishCol}\` AS english, meaning, chinese FROM \`${table}\` ORDER BY \`${englishCol}\` ASC`
     );
 
@@ -161,7 +163,7 @@ app.get('/api/quiz/questions', async (req, res) => {
 
     const table = 'english';
 
-    const [columns] = await require('./db').pool.query(
+    const [columns] = await pool.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
       [process.env.DB_NAME, table]
     );
@@ -180,9 +182,9 @@ app.get('/api/quiz/questions', async (req, res) => {
       queryParams = [limit, offset];
     }
 
-    const [rows] = await require('./db').pool.query(questionQuery, queryParams);
+    const [rows] = await pool.query(questionQuery, queryParams);
 
-    const allMeanings = await require('./db').pool.query(
+    const allMeanings = await pool.query(
       `SELECT meaning FROM \`${table}\` WHERE meaning IS NOT NULL AND meaning != ''`
     );
     const allMeaningValues = allMeanings[0].map((r) => r.meaning);
