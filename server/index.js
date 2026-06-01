@@ -68,10 +68,9 @@ app.get('/api/me', requireAuth, async (req, res) => {
 
 app.get('/api/me/scores', requireAuth, async (req, res) => {
   const level = Number(req.query.level ?? 1);
-  const total = await getTotalScore(req.user.user_id);
-  const bestLevel = Math.min(10, Math.floor(total / 50) + 1);
-  const bestScore = level <= bestLevel ? total : 0;
-  return res.json({ scores: [{ level, best_score: bestScore }] });
+  const allScores = await getLevelScores(req.user.user_id);
+  const entry = allScores.find(s => s.level === level);
+  return res.json({ scores: entry ? [entry] : [{ level, best_score: 0 }] });
 });
 
 app.post('/api/me/level-score', requireAuth, async (req, res) => {
