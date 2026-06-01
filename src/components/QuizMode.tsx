@@ -19,7 +19,7 @@ async function fetchBestForLevel(level: number): Promise<number> {
   try {
     const token = localStorage.getItem("token");
     if (!token) return 0;
-    const res = await fetch(`http://localhost:4000/api/me/scores`, {
+    const res = await fetch(`http://localhost:4000/api/me/scores?level=${level}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return 0;

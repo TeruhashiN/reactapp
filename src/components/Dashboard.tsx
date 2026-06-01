@@ -199,7 +199,7 @@ export default function Dashboard() {
             <div>
               <h2 style={styles.cardTitle}>Choose a level</h2>
               <p style={styles.cardSub}>
-                Unlock higher levels by scoring more points
+                Unlock higher levels by scoring 50 points for every each level
               </p>
             </div>
             <span style={styles.badgePurple}>
