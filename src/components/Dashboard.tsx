@@ -115,13 +115,22 @@ export default function Dashboard() {
     if (!token) return;
     setRankingLoading(true);
     try {
-      const res = await fetch("http://localhost:4000/api/leaderboard?limit=20", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        "http://localhost:4000/api/leaderboard?limit=20",
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-      const data: { users: { rank: number; username: string; score: number; user_id: number }[] } =
-        await res.json();
+      const data: {
+        users: {
+          rank: number;
+          username: string;
+          score: number;
+          user_id: number;
+        }[];
+      } = await res.json();
       setRankingUsers(data.users);
       setShowRanking(true);
     } catch (e) {
@@ -131,21 +140,37 @@ export default function Dashboard() {
     }
   };
 
+  const [englishCount, setEnglishCount] = useState<number>(0);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await fetch("http://localhost:4000/api/dictionary/english");
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const data: { items: unknown[] } = await res.json();
+        setEnglishCount(Array.isArray(data.items) ? data.items.length : 0);
+      } catch {
+        setEnglishCount(0);
+      }
+    };
+    run();
+  }, []);
+
   const derived = useMemo(() => {
     const score = me?.score ?? 0;
     const { level, progress, currentRangeStart, currentRangeEnd } =
       progressToNextLevel(score);
-    const streak = clamp(Math.floor(score / 25), 0, 50);
+
     return {
       level,
       score,
       progress,
-      streak,
+      englishCount,
       highScore: score,
       currentRangeStart,
       currentRangeEnd,
     };
-  }, [me]);
+  }, [me, englishCount]);
 
   if (!loading && !me) return <Navigate to="/quiz" replace />;
 
@@ -188,14 +213,14 @@ export default function Dashboard() {
         {/* ── Stat cards ── */}
         <div style={styles.statGrid}>
           {[
-{
-               label: "LEVEL",
-               value: `L${derived.level}`,
-               sub: "of 20 total",
-               color: "#3C3489",
-               bg: "#EEEDFE",
-               icon: "🏆",
-             },
+            {
+              label: "LEVEL",
+              value: `L${derived.level}`,
+              sub: "of 20 total",
+              color: "#3C3489",
+              bg: "#EEEDFE",
+              icon: "🏆",
+            },
             {
               label: "SCORE",
               value: derived.score,
@@ -205,12 +230,12 @@ export default function Dashboard() {
               icon: "📊",
             },
             {
-              label: "STREAK",
-              value: derived.streak,
-              sub: "days active",
+              label: "ENGLISH",
+              value: derived.englishCount,
+              sub: "total English words",
               color: "#712B13",
               bg: "#FAECE7",
-              icon: "🔥",
+              icon: "📚",
             },
             {
               label: "RANK",
@@ -239,9 +264,9 @@ export default function Dashboard() {
           <div style={styles.cardHeader}>
             <div>
               <h2 style={styles.cardTitle}>Choose a level</h2>
-<p style={styles.cardSub}>
-                 Unlock higher levels by scoring 25 points for each level
-               </p>
+              <p style={styles.cardSub}>
+                Unlock higher levels by scoring 25 points for each level
+              </p>
             </div>
             <span style={styles.badgePurple}>
               Unlocked up to L{derived.level}
@@ -257,7 +282,9 @@ export default function Dashboard() {
                   onClick={() => navigate(`/quiz-mode?level=${lvl}`)}
                   style={{
                     ...styles.lvlBtn,
-                    ...(isCurrent ? styles.lvlBtnCurrent : styles.lvlBtnUnlocked),
+                    ...(isCurrent
+                      ? styles.lvlBtnCurrent
+                      : styles.lvlBtnUnlocked),
                   }}
                 >
                   {isCurrent ? "👑 " : ""}L{lvl}
@@ -405,80 +432,93 @@ export default function Dashboard() {
             <div>
               <h2 style={styles.cardTitle}>⚔️ Multiplayer Quiz Battle</h2>
               <p style={styles.cardSub}>
-                Challenge a player from the leaderboard. Choose an active opponent and answer 5, 10, or 20 questions.
+                Challenge a player from the leaderboard. Choose an active
+                opponent and answer 5, 10, or 20 questions.
               </p>
             </div>
             <span style={styles.badgePurple}>vs Player</span>
           </div>
-<div style={styles.sectionGrid}>
-              <button
-                type="button"
-                onClick={() => navigate("/multiplayer-quiz")}
-                style={{
-                  ...styles.secBtn,
-                  ...styles.secBtnTeal,
-                  width: "100%",
-                  cursor: "pointer",
-                  transition: "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 18px rgba(13, 110, 86, 0.12)";
-                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "#C8E8DC";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
-                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "#E1F5EE";
-                }}
-              >
-                <span>⚔️</span>
-                <div>
-                  <div style={{ fontWeight: 500 }}>Start Battle</div>
-                  <div style={{ fontSize: 12, color: "#085041", opacity: 0.8 }}>
-                    Challenge another player online
-                  </div>
+          <div style={styles.sectionGrid}>
+            <button
+              type="button"
+              onClick={() => navigate("/multiplayer-quiz")}
+              style={{
+                ...styles.secBtn,
+                ...styles.secBtnTeal,
+                width: "100%",
+                cursor: "pointer",
+                transition:
+                  "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                  "0 8px 18px rgba(13, 110, 86, 0.12)";
+                (e.currentTarget as HTMLButtonElement).style.transform =
+                  "translateY(-1px)";
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "#C8E8DC";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+                (e.currentTarget as HTMLButtonElement).style.transform =
+                  "translateY(0)";
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "#E1F5EE";
+              }}
+            >
+              <span>⚔️</span>
+              <div>
+                <div style={{ fontWeight: 500 }}>Start Battle</div>
+                <div style={{ fontSize: 12, color: "#085041", opacity: 0.8 }}>
+                  Challenge another player online
                 </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/local-multiplayer")}
-                style={{
-                  ...styles.secBtn,
-                  ...styles.secBtnPurple,
-                  width: "100%",
-                  cursor: "pointer",
-                  transition: "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 18px rgba(60, 52, 137, 0.12)";
-                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "#E6E0FA";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
-                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "#EEEDFE";
-                }}
-              >
-                <span>👥</span>
-                <div>
-                  <div style={{ fontWeight: 500 }}>Local Multiplayer</div>
-                  <div style={{ fontSize: 12, color: "#3C3489", opacity: 0.8 }}>
-                    2 - 4 players on same device
-                  </div>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/local-multiplayer")}
+              style={{
+                ...styles.secBtn,
+                ...styles.secBtnPurple,
+                width: "100%",
+                cursor: "pointer",
+                transition:
+                  "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                  "0 8px 18px rgba(60, 52, 137, 0.12)";
+                (e.currentTarget as HTMLButtonElement).style.transform =
+                  "translateY(-1px)";
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "#E6E0FA";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+                (e.currentTarget as HTMLButtonElement).style.transform =
+                  "translateY(0)";
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "#EEEDFE";
+              }}
+            >
+              <span>👥</span>
+              <div>
+                <div style={{ fontWeight: 500 }}>Local Multiplayer</div>
+                <div style={{ fontSize: 12, color: "#3C3489", opacity: 0.8 }}>
+                  2 - 4 players on same device
                 </div>
-              </button>
-            </div>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* ── Progress + Details ── */}
         <div style={styles.bottomGrid}>
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Progress to next level</h2>
-<p style={styles.cardSub}>
-               L{derived.level} → L{Math.min(derived.level + 1, 20)}
-             </p>
+            <p style={styles.cardSub}>
+              L{derived.level} → L{Math.min(derived.level + 1, 20)}
+            </p>
             <div style={styles.progressWrap}>
               <div
                 style={{ ...styles.progressBar, width: `${progressPct}%` }}
@@ -491,11 +531,11 @@ export default function Dashboard() {
               <span style={{ fontWeight: 500 }}>{progressPct}%</span>
               <span>{derived.currentRangeEnd} pts</span>
             </div>
-<p style={{ ...styles.cardSub, marginTop: 12 }}>
-               {derived.level < 20
-                 ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 20!`
-                 : "Keep scoring to reach Level 20!"}
-             </p>
+            <p style={{ ...styles.cardSub, marginTop: 12 }}>
+              {derived.level < 20
+                ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 20!`
+                : "Keep scoring to reach Level 20!"}
+            </p>
           </div>
 
           <div style={styles.card}>
@@ -504,7 +544,7 @@ export default function Dashboard() {
               { label: "User ID", value: `#${me?.user_id}` },
               { label: "Level", value: `L${derived.level}` },
               { label: "Score", value: derived.score },
-              { label: "Streak", value: `${derived.streak} days` },
+              { label: "English", value: `${derived.englishCount}` },
               {
                 label: "Rank",
                 value: leaderboard
@@ -536,7 +576,11 @@ export default function Dashboard() {
                 opacity: rankingLoading ? 0.7 : 1,
               }}
             >
-              {rankingLoading ? "Loading…" : showRanking ? "Refresh" : "View Ranking"}
+              {rankingLoading
+                ? "Loading…"
+                : showRanking
+                  ? "Refresh"
+                  : "View Ranking"}
             </button>
           </div>
           {showRanking && (
@@ -604,35 +648,37 @@ export default function Dashboard() {
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Options</h2>
           <div style={styles.optRow}>
-                <button
-                  type="button"
-                  onClick={() => setChangePasswordOpen(true)}
-                  style={styles.optBtn}
-                >
-                  ⚙️ Change Password
-                </button>
-                {(me?.role === 'admin') && (
-                  <button
-                    type="button"
-                    onClick={() => setCreateAccountOpen(true)}
-                    style={styles.optBtn}
-                  >
-                    👤 Create account
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("token");
-                    window.location.href = "/quiz";
-                  }}
-                  style={{ ...styles.optBtn, ...styles.optBtnDanger }}
-                >
-                  🚪 Log out
-                </button>
-              </div>
+            <button
+              type="button"
+              onClick={() => setChangePasswordOpen(true)}
+              style={styles.optBtn}
+            >
+              ⚙️ Change Password
+            </button>
+            {me?.role === "admin" && (
+              <button
+                type="button"
+                onClick={() => setCreateAccountOpen(true)}
+                style={styles.optBtn}
+              >
+                👤 Create account
+              </button>
+            )}
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                window.location.href = "/quiz";
+              }}
+              style={{ ...styles.optBtn, ...styles.optBtnDanger }}
+            >
+              🚪 Log out
+            </button>
+          </div>
         </div>
 
-        <p style={styles.betaText}>This is a beta version — some features may still be under development.</p>
+        <p style={styles.betaText}>
+          This is a beta version — some features may still be under development.
+        </p>
 
         <CreateAccountModal
           open={createAccountOpen}
@@ -1017,5 +1063,10 @@ const styles: Record<string, React.CSSProperties> = {
 
   /* Error */
   errorText: { color: "#A32D2D", fontSize: 13, marginTop: 8 },
-  betaText: { color: "#888780", fontSize: 13, fontStyle: "italic", margin: "12px 0 0" },
+  betaText: {
+    color: "#888780",
+    fontSize: 13,
+    fontStyle: "italic",
+    margin: "12px 0 0",
+  },
 };
