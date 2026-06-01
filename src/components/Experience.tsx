@@ -13,7 +13,7 @@ const Experience: React.FC = () => {
                 <div className="col-md-8">
                   <h5 className="card-title">E-Commerce Data Analyst</h5>
                   <h6 className="text-primary">
-                    Taiyuan Zhihe Xing Education Technology Co., Ltd | March 2026 – Present
+                    Taiyuan Zhihe Xing Education Technology Co., Ltd | March 2026 – June 2026
                   </h6>
                   <h6 className="text-primary">
                     Independent Contractor
@@ -156,6 +156,7 @@ const Experience: React.FC = () => {
                   <span className="badge bg-success mb-2 me-1">PHP</span>
                   <span className="badge bg-success mb-2 me-1">React</span>
                   <span className="badge bg-success mb-2 me-1">Node.js</span>
+                  <span className="badge bg-success mb-2 me-1">Laravel</span>
                   <span className="badge bg-success mb-2 me-1">MongoDB</span>
                   <span className="badge bg-success mb-2 me-1">Flutter</span>
                   <span className="badge bg-success mb-2 me-1">Dart</span>

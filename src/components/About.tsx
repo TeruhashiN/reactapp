@@ -11,22 +11,27 @@ const About: React.FC = () => {
             {/* About Me Card */}
             <div className="section-border mb-4">
               <p className="lead">
-                I’m a developer with experience in web development, mobile
-                applications, game development, software development, and 3D
-                design.
+                I'm a Software Developer and Data Analytics enthusiast with experience in
+                web development, mobile applications, software solutions, game development,
+                and 3D design. My journey into technology began after transitioning from an
+                Agriculture background, which taught me resilience, adaptability, and a
+                strong commitment to continuous learning.
               </p>
+
               <p>
-                I enjoy learning new technologies and applying what I know to
-                create useful and engaging solutions. Working with different
-                stacks has helped me understand how ideas move from concept to
-                implementation across various platforms.
+                Over the years, I have developed projects using modern technologies across
+                multiple platforms, gaining hands-on experience in full-stack development,
+                database management, UI/UX design, and data analysis. I enjoy building
+                applications that are both practical and impactful, with a focus on
+                performance, usability, and maintainability.
               </p>
+
               <p>
-                I’m especially interested in building projects that are
-                practical, user-friendly, and well-structured. Whether it’s a
-                small personal project or a larger application, I value clean
-                code, thoughtful design, and continuous improvement through
-                hands-on experience.
+                Currently, I am expanding my expertise in Data Analytics and Artificial
+                Intelligence while continuing to strengthen my software development skills.
+                I am passionate about leveraging technology and data-driven insights to
+                create innovative solutions that address real-world challenges and deliver
+                meaningful results.
               </p>
             </div>
 

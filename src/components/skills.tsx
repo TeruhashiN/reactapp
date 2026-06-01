@@ -63,6 +63,9 @@ const Skills: React.FC = () => {
                       PHP
                     </span>
                     <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
+                      Laravel
+                    </span>
+                    <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
                       Node.js
                     </span>
                     <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
