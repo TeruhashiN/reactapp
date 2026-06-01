@@ -410,37 +410,66 @@ export default function Dashboard() {
             </div>
             <span style={styles.badgePurple}>vs Player</span>
           </div>
-          <div style={styles.sectionGrid}>
+<div style={styles.sectionGrid}>
               <button
                 type="button"
                 onClick={() => navigate("/multiplayer-quiz")}
-              style={{
-                ...styles.secBtn,
-                ...styles.secBtnTeal,
-                width: "100%",
-                cursor: "pointer",
-                transition: "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 18px rgba(13, 110, 86, 0.12)";
-                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)";
-                (e.currentTarget as HTMLButtonElement).style.background = "#C8E8DC";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
-                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
-                (e.currentTarget as HTMLButtonElement).style.background = "#E1F5EE";
-              }}
+                style={{
+                  ...styles.secBtn,
+                  ...styles.secBtnTeal,
+                  width: "100%",
+                  cursor: "pointer",
+                  transition: "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 18px rgba(13, 110, 86, 0.12)";
+                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)";
+                  (e.currentTarget as HTMLButtonElement).style.background = "#C8E8DC";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+                  (e.currentTarget as HTMLButtonElement).style.background = "#E1F5EE";
+                }}
               >
                 <span>⚔️</span>
                 <div>
                   <div style={{ fontWeight: 500 }}>Start Battle</div>
                   <div style={{ fontSize: 12, color: "#085041", opacity: 0.8 }}>
-                    Challenge another player
+                    Challenge another player online
                   </div>
                 </div>
               </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => navigate("/local-multiplayer")}
+                style={{
+                  ...styles.secBtn,
+                  ...styles.secBtnPurple,
+                  width: "100%",
+                  cursor: "pointer",
+                  transition: "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 18px rgba(60, 52, 137, 0.12)";
+                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)";
+                  (e.currentTarget as HTMLButtonElement).style.background = "#E6E0FA";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+                  (e.currentTarget as HTMLButtonElement).style.background = "#EEEDFE";
+                }}
+              >
+                <span>👥</span>
+                <div>
+                  <div style={{ fontWeight: 500 }}>Local Multiplayer</div>
+                  <div style={{ fontSize: 12, color: "#3C3489", opacity: 0.8 }}>
+                    2 - 4 players on same device
+                  </div>
+                </div>
+              </button>
+            </div>
         </div>
 
         {/* ── Progress + Details ── */}
