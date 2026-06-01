@@ -66,7 +66,7 @@ export default function CreateAccountModal({ open, onClose }: { open: boolean; o
             borderRadius: 8,
           }}
         >
-          Account created successfully.
+          Successfully created an account.
         </div>
         <button
           type="button"

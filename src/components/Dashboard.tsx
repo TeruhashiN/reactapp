@@ -4,7 +4,7 @@ import ChangePasswordModal from "./ChangePasswordModal";
 import CreateAccountModal from "./CreateAccountModal";
 
 type MeResponse = {
-  user: { user_id: number; username: string; score: number };
+  user: { user_id: number; username: string; score: number; role: string };
 };
 
 const clamp = (n: number, min: number, max: number) =>
@@ -472,13 +472,15 @@ export default function Dashboard() {
                 >
                   ⚙️ Change Password
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCreateAccountOpen(true)}
-                  style={styles.optBtn}
-                >
-                  👤 Create account
-                </button>
+                {(me?.role === 'admin') && (
+                  <button
+                    type="button"
+                    onClick={() => setCreateAccountOpen(true)}
+                    style={styles.optBtn}
+                  >
+                    👤 Create account
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     localStorage.removeItem("token");

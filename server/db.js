@@ -15,7 +15,7 @@ const TABLE = () => process.env.DB_TABLE || 'user';
 
 async function getUserByUsername(username) {
   const [rows] = await pool.query(
-    `SELECT user_id, username, password, score FROM \`${TABLE()}\` WHERE username = ? LIMIT 1`,
+    `SELECT user_id, username, password, score, role FROM \`${TABLE()}\` WHERE username = ? LIMIT 1`,
     [username]
   );
   return rows[0] || null;
@@ -23,7 +23,7 @@ async function getUserByUsername(username) {
 
 async function getUserById(userId) {
   const [rows] = await pool.query(
-    `SELECT user_id, username, password, score FROM \`${TABLE()}\` WHERE user_id = ? LIMIT 1`,
+    `SELECT user_id, username, password, score, role FROM \`${TABLE()}\` WHERE user_id = ? LIMIT 1`,
     [userId]
   );
   return rows[0] || null;
