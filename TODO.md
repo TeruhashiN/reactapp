@@ -1,10 +1,5 @@
-# TODO
-
-## Implement “score should change only (replace high score), not add”
-
-- [ ] Inspect `src/components/QuizMode.tsx` logic for updating best score and backend score.
-- [ ] Identify where level score is computed and where `localStorage` best score per level is updated.
-- [ ] Change logic so that level “best”/display score replaces with the new high score instead of accumulating (prevents 13 -> 34 -> 47).
-- [ ] Ensure update happens only when the current attempt exceeds the previous high score by a meaningful threshold ("change score if the current score has been change to much more high score").
-- [ ] Update any related UI text (level score / best score) to reflect corrected behavior.
-- [ ] Run TypeScript build / quick sanity check.
+- [x] Update `LocalMultiplayer` to eliminate a player when their timer hits 0 (mark them out)
+- [x] Keep the match running until only 1 or 0 players remain not-out
+- [x] Skip out players when selecting the active player / advancing turns
+- [x] Update winner/draw calculation on the Game Over screen to consider only not-out players
+- [x] Verify timer interval and restart behavior

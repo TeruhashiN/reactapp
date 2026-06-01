@@ -19,10 +19,14 @@ const PLAYER_OPTIONS = [2, 3, 4];
 
 const getQuestionCountOptions = (numPlayers: number): number[] => {
   switch (numPlayers) {
-    case 2: return [10, 20, 50, 100];
-    case 3: return [15, 30, 60, 120];
-    case 4: return [20, 40, 120, 200];
-    default: return [10, 20, 50, 100];
+    case 2:
+      return [10, 20, 50, 100];
+    case 3:
+      return [15, 30, 60, 120];
+    case 4:
+      return [20, 40, 120, 200];
+    default:
+      return [10, 20, 50, 100];
   }
 };
 
@@ -41,7 +45,10 @@ function playTone(freq: number, duration: number) {
     osc.type = "sine";
     osc.frequency.value = freq;
     gain.gain.value = 0.08;
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      ctx.currentTime + duration / 1000,
+    );
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
@@ -77,7 +84,8 @@ export default function LocalMultiplayer() {
   const [scores, setScores] = useState<number[]>([]);
   const [activePlayer, setActivePlayer] = useState(0);
   const [finished, setFinished] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0);
+  const [timeLeftPerPlayer, setTimeLeftPerPlayer] = useState<number[]>([]);
+  const [playersOut, setPlayersOut] = useState<boolean[]>([]);
   const timerRef = useRef<number | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -91,13 +99,15 @@ export default function LocalMultiplayer() {
     setQuestions([]);
     try {
       const res = await fetch(
-        `http://localhost:4000/api/timer-quiz/questions?count=${setup.questionCount}`
+        `http://localhost:4000/api/timer-quiz/questions?count=${setup.questionCount}`,
       );
       if (!res.ok) throw new Error("Failed to fetch questions");
       const data = await res.json();
       setQuestions(data.questions || []);
       setScores(Array(setup.numPlayers).fill(0));
-      setTimeLeft(setup.timeLimit);
+      // each player gets their own full timer (in seconds)
+      setTimeLeftPerPlayer(Array(setup.numPlayers).fill(setup.timeLimit));
+      setPlayersOut(Array(setup.numPlayers).fill(false));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load questions");
     } finally {
@@ -105,42 +115,95 @@ export default function LocalMultiplayer() {
     }
   }, [setup.questionCount, setup.numPlayers, setup.timeLimit]);
 
-   useEffect(() => {
-     if (!gameStarted) return;
-     fetchQuestions();
-   }, [fetchQuestions, gameStarted]);
+  useEffect(() => {
+    if (!gameStarted) return;
+    fetchQuestions();
+  }, [fetchQuestions, gameStarted]);
 
-   // Reset questionCount to first valid option when numPlayers changes
-   useEffect(() => {
-     const validOptions = getQuestionCountOptions(setup.numPlayers);
-     if (!validOptions.includes(setup.questionCount)) {
-       setSetup(prev => ({
-         ...prev,
-         questionCount: validOptions[0]
-       }));
-     }
-   }, [setup.numPlayers]);
+  // Reset questionCount to first valid option when numPlayers changes
+  useEffect(() => {
+    const validOptions = getQuestionCountOptions(setup.numPlayers);
+    if (!validOptions.includes(setup.questionCount)) {
+      setSetup((prev) => ({
+        ...prev,
+        questionCount: validOptions[0],
+      }));
+    }
+  }, [setup.numPlayers]);
 
   useEffect(() => {
     if (setup.timeLimit <= 0 || finished) return;
-    if (timeLeft <= 0) {
-      setFinished(true);
-      return;
+
+    // advance activePlayer to the next alive player
+    const aliveIndex = (() => {
+      if (!playersOut || playersOut.length === 0) return activePlayer;
+      for (let step = 0; step < setup.numPlayers; step++) {
+        const idx = (activePlayer + step) % setup.numPlayers;
+        if (!playersOut[idx]) return idx;
+      }
+      return activePlayer;
+    })();
+
+    if (aliveIndex !== activePlayer) {
+      setActivePlayer(aliveIndex);
     }
+
     timerRef.current = window.setInterval(() => {
-      setTimeLeft((t) => t - 1);
+      setTimeLeftPerPlayer((prev) => {
+        const next = [...prev];
+        const currentPlayer = aliveIndex;
+        if (typeof next[currentPlayer] !== "number") return prev;
+        if (playersOut?.[currentPlayer]) return prev;
+
+        if (next[currentPlayer] <= 1) {
+          next[currentPlayer] = 0;
+          return next;
+        }
+
+        next[currentPlayer] = next[currentPlayer] - 1;
+        return next;
+      });
     }, 1000);
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [setup.timeLimit, timeLeft, finished]);
+  }, [setup.timeLimit, finished, activePlayer, playersOut]);
+
+  // If any player's timer reaches 0, mark them out (but keep playing)
+  useEffect(() => {
+    if (setup.timeLimit <= 0 || finished) return;
+
+    const nextOut = [...playersOut];
+    let changed = false;
+
+    for (let i = 0; i < timeLeftPerPlayer.length; i++) {
+      if (!nextOut[i] && (timeLeftPerPlayer[i] ?? 0) <= 0) {
+        nextOut[i] = true;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      setPlayersOut(nextOut);
+    }
+  }, [timeLeftPerPlayer, setup.timeLimit, finished, playersOut]);
+
+  // End the match only when all but 1 players are out
+  useEffect(() => {
+    if (setup.timeLimit <= 0 || finished) return;
+    const alive = playersOut.filter((x) => !x).length;
+    if (alive <= 1) setFinished(true);
+  }, [playersOut, setup.timeLimit, finished]);
 
   function handleSelect(opt: string) {
     if (!questions[current] || finished) return;
     const q = questions[current];
     const chosenText = opt.replace(/^[A-D]\. /, "");
+
     const ok = chosenText === q.answer;
     setSelected(opt);
+
     playTone(ok ? 600 : 300, ok ? 80 : 150);
 
     const newScores = [...scores];
@@ -153,7 +216,14 @@ export default function LocalMultiplayer() {
       } else {
         setCurrent((c) => c + 1);
         setSelected(null);
-        setActivePlayer((p) => (p + 1) % setup.numPlayers);
+        setActivePlayer((p) => {
+          // skip out players
+          for (let step = 1; step <= setup.numPlayers; step++) {
+            const idx = (p + step) % setup.numPlayers;
+            if (!playersOut?.[idx]) return idx;
+          }
+          return p;
+        });
       }
     }, 350);
   }
@@ -164,6 +234,7 @@ export default function LocalMultiplayer() {
     setCurrent(0);
     setSelected(null);
     setFinished(false);
+    setPlayersOut(Array(setup.numPlayers).fill(false));
   }
 
   function handleRestart() {
@@ -173,8 +244,11 @@ export default function LocalMultiplayer() {
     setSelected(null);
     setScores(Array(setup.numPlayers).fill(0));
     setActivePlayer(0);
-    setTimeLeft(setup.timeLimit);
+    setTimeLeftPerPlayer(Array(setup.numPlayers).fill(setup.timeLimit));
+    setPlayersOut(Array(setup.numPlayers).fill(false));
+
     if (timerRef.current) clearInterval(timerRef.current);
+
     fetchQuestions();
   }
 
@@ -199,14 +273,18 @@ export default function LocalMultiplayer() {
             >
               ← Dashboard
             </button>
-            <h2 style={{ ...s.cardTitle, margin: "12px 0 4px" }}>👥 Local Multiplayer</h2>
+            <h2 style={{ ...s.cardTitle, margin: "12px 0 4px" }}>
+              👥 Local Multiplayer
+            </h2>
             <p style={s.cardSub}>
               Configure your local multiplayer quiz battle
             </p>
           </div>
 
           <div style={s.card}>
-            <h3 style={{ ...s.cardTitle, marginBottom: 4 }}>1. Number of Players</h3>
+            <h3 style={{ ...s.cardTitle, marginBottom: 4 }}>
+              1. Number of Players
+            </h3>
             <p style={{ ...s.cardSub, marginBottom: 12 }}>
               Choose between 2 to 4 players
             </p>
@@ -230,30 +308,32 @@ export default function LocalMultiplayer() {
             </div>
           </div>
 
-           <div style={s.card}>
-             <h3 style={{ ...s.cardTitle, marginBottom: 4 }}>2. Number of Questions</h3>
-             <p style={{ ...s.cardSub, marginBottom: 12 }}>
-               Choose how many questions you want to play
-             </p>
-             <div style={countGridStyle}>
-               {getQuestionCountOptions(setup.numPlayers).map((n) => {
-                 const isActive = setup.questionCount === n;
-                 return (
-                   <button
-                     key={n}
-                     type="button"
-                     onClick={() => setSetup({ ...setup, questionCount: n })}
-                     style={{
-                       ...countBtn,
-                       ...(isActive ? countBtnActive : countBtnDefault),
-                     }}
-                   >
-                     {n}
-                   </button>
-                 );
-               })}
-             </div>
-           </div>
+          <div style={s.card}>
+            <h3 style={{ ...s.cardTitle, marginBottom: 4 }}>
+              2. Number of Questions
+            </h3>
+            <p style={{ ...s.cardSub, marginBottom: 12 }}>
+              Choose how many questions you want to play
+            </p>
+            <div style={countGridStyle}>
+              {getQuestionCountOptions(setup.numPlayers).map((n) => {
+                const isActive = setup.questionCount === n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setSetup({ ...setup, questionCount: n })}
+                    style={{
+                      ...countBtn,
+                      ...(isActive ? countBtnActive : countBtnDefault),
+                    }}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div style={s.card}>
             <h3 style={{ ...s.cardTitle, marginBottom: 4 }}>3. Time Limit</h3>
@@ -314,14 +394,28 @@ export default function LocalMultiplayer() {
         <div style={s.container}>
           <div style={s.card}>
             <div style={s.cardBody}>
-              <p style={{ color: "#A32D2D", textAlign: "center", marginBottom: 16 }}>
+              <p
+                style={{
+                  color: "#A32D2D",
+                  textAlign: "center",
+                  marginBottom: 16,
+                }}
+              >
                 {error || "No questions available."}
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <button onClick={() => navigate("/local-multiplayer")} style={{ ...s.btn, ...s.btnPrimary }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+              >
+                <button
+                  onClick={() => navigate("/local-multiplayer")}
+                  style={{ ...s.btn, ...s.btnPrimary }}
+                >
                   Back to Setup
                 </button>
-                <button onClick={() => navigate("/dashboard")} style={{ ...s.btn, ...s.btnGhost }}>
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  style={{ ...s.btn, ...s.btnGhost }}
+                >
                   ← Back to Dashboard
                 </button>
               </div>
@@ -333,12 +427,21 @@ export default function LocalMultiplayer() {
   }
 
   if (finished) {
-    const maxScore = Math.max(...scores);
-    const winners = scores
-      .map((score, idx) => ({ score, idx: idx + 1 }))
+    const alivePlayers = scores
+      .map((score, idx) => ({ score, idx }))
+      .filter((p) => !playersOut?.[p.idx]);
+
+    const maxScore = Math.max(...alivePlayers.map((p) => p.score));
+    const winners = alivePlayers
       .filter((p) => p.score === maxScore)
-      .map((p) => `Player ${p.idx}`);
-    const winnerText = winners.length === 1 ? `${winners[0]} wins!` : winners.length === setup.numPlayers ? "Draw!" : `${winners.join(", ")} tie!`;
+      .map((p) => `Player ${p.idx + 1}`);
+
+    const winnerText =
+      winners.length === 1
+        ? `${winners[0]} wins!`
+        : alivePlayers.length === winners.length
+          ? "Draw!"
+          : `${winners.join(", ")} tie!`;
 
     return (
       <div style={s.page}>
@@ -346,30 +449,55 @@ export default function LocalMultiplayer() {
           <div style={s.card}>
             <div style={s.cardBody}>
               <h2 style={s.resultTitle}>Game Over!</h2>
-              <div style={{
-                ...s.scoresGrid,
-                gridTemplateColumns: `repeat(${setup.numPlayers}, 1fr)`,
-              }}>
+              <div
+                style={{
+                  ...s.scoresGrid,
+                  gridTemplateColumns: `repeat(${setup.numPlayers}, 1fr)`,
+                }}
+              >
                 {scores.map((score, idx) => (
-                  <div key={idx} style={{
-                    ...s.scoreBox,
-                    background: playerColors[idx].bg,
-                    color: playerColors[idx].text,
-                  }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Player {idx + 1}</div>
+                  <div
+                    key={idx}
+                    style={{
+                      ...s.scoreBox,
+                      background: playerColors[idx].bg,
+                      color: playerColors[idx].text,
+                      opacity: playersOut?.[idx] ? 0.45 : 1,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                      Player {idx + 1}
+                      {playersOut?.[idx] ? " (Out)" : ""}
+                    </div>
                     <div style={{ fontSize: 24 }}>{score}</div>
                   </div>
                 ))}
               </div>
-              <p style={{ textAlign: "center", fontSize: 18, margin: "16px 0" }}>{winnerText}</p>
-              <div style={{ display: "flex", gap: 10, flexDirection: "column" }}>
-                <button onClick={handleRestart} style={{ ...s.btn, ...s.btnPrimary }}>
+
+              <p
+                style={{ textAlign: "center", fontSize: 18, margin: "16px 0" }}
+              >
+                {winnerText}
+              </p>
+              <div
+                style={{ display: "flex", gap: 10, flexDirection: "column" }}
+              >
+                <button
+                  onClick={handleRestart}
+                  style={{ ...s.btn, ...s.btnPrimary }}
+                >
                   ↺ Play Again
                 </button>
-                <button onClick={() => navigate("/local-multiplayer")} style={{ ...s.btn, ...s.btnGhost }}>
+                <button
+                  onClick={() => navigate("/local-multiplayer")}
+                  style={{ ...s.btn, ...s.btnGhost }}
+                >
                   Back to Setup
                 </button>
-                <button onClick={() => navigate("/dashboard")} style={{ ...s.btn, ...s.btnGhost }}>
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  style={{ ...s.btn, ...s.btnGhost }}
+                >
                   Dashboard
                 </button>
               </div>
@@ -399,36 +527,56 @@ export default function LocalMultiplayer() {
 
             {setup.timeLimit > 0 && (
               <div style={s.timerDisplay}>
-                <span style={{ ...s.timerBig, color: timeLeft <= 10 ? "#E24B4A" : "#2C2C2A" }}>
-                  {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
+                <span
+                  style={{
+                    ...s.timerBig,
+                    color:
+                      (timeLeftPerPlayer[activePlayer] ?? 0) <= 10
+                        ? "#E24B4A"
+                        : "#2C2C2A",
+                  }}
+                >
+                  {Math.floor((timeLeftPerPlayer[activePlayer] ?? 0) / 60)}:
+                  {String((timeLeftPerPlayer[activePlayer] ?? 0) % 60).padStart(
+                    2,
+                    "0",
+                  )}
                 </span>
+
                 <span style={s.timerLabel}>remaining</span>
               </div>
             )}
 
             <div style={s.activePlayerBanner}>
-              <span style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: playerColors[activePlayer].text,
-                background: playerColors[activePlayer].accent,
-                padding: "6px 12px",
-                borderRadius: 20,
-              }}>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: playerColors[activePlayer].text,
+                  background: playerColors[activePlayer].accent,
+                  padding: "6px 12px",
+                  borderRadius: 20,
+                }}
+              >
                 👤 Player {activePlayer + 1}'s Turn
               </span>
             </div>
 
-            <div style={{
-              ...s.scoresGrid,
-              gridTemplateColumns: `repeat(${setup.numPlayers}, 1fr)`,
-            }}>
+            <div
+              style={{
+                ...s.scoresGrid,
+                gridTemplateColumns: `repeat(${setup.numPlayers}, 1fr)`,
+              }}
+            >
               {scores.map((score, idx) => (
-                <div key={idx} style={{
-                  ...s.scoreBox,
-                  background: playerColors[idx].bg,
-                  opacity: activePlayer === idx ? 1 : 0.5,
-                }}>
+                <div
+                  key={idx}
+                  style={{
+                    ...s.scoreBox,
+                    background: playerColors[idx].bg,
+                    opacity: activePlayer === idx ? 1 : 0.5,
+                  }}
+                >
                   <div style={{ fontWeight: 600 }}>P{idx + 1}</div>
                   <div style={{ fontSize: 20 }}>{score}</div>
                 </div>
@@ -446,13 +594,25 @@ export default function LocalMultiplayer() {
                   onClick={() => handleSelect(opt)}
                   style={{
                     ...s.optionBtn,
-                    ...(selected === opt ? s.optionSelected : {}),
+                    ...(selected === opt
+                      ? {
+                          background: playerColors[activePlayer].bg,
+                          borderColor: playerColors[activePlayer].text,
+                          color: playerColors[activePlayer].text,
+                        }
+                      : {}),
                   }}
                 >
                   <span
                     style={{
                       ...s.optLetter,
-                      ...(selected === opt ? s.optLetterSelected : {}),
+                      ...(selected === opt
+                        ? {
+                            background: playerColors[activePlayer].text,
+                            borderColor: playerColors[activePlayer].text,
+                            color: playerColors[activePlayer].bg,
+                          }
+                        : {}),
                     }}
                   >
                     {OPTION_LETTERS[i]}
@@ -486,8 +646,16 @@ const countBtn: React.CSSProperties = {
   fontFamily: "inherit",
 };
 
-const countBtnDefault: React.CSSProperties = { background: "#fff", borderColor: "#B4B2A9", color: "#2C2C2A" };
-const countBtnActive: React.CSSProperties = { background: "#E6E0FA", borderColor: "#3C3489", color: "#3C3489" };
+const countBtnDefault: React.CSSProperties = {
+  background: "#fff",
+  borderColor: "#B4B2A9",
+  color: "#2C2C2A",
+};
+const countBtnActive: React.CSSProperties = {
+  background: "#E6E0FA",
+  borderColor: "#3C3489",
+  color: "#3C3489",
+};
 
 const s: Record<string, React.CSSProperties> = {
   page: {
