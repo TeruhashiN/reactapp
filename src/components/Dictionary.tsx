@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-type DictionaryItem = {
-  english: string;
-  meaning: string;
-  chinese: string;
-};
+const STYLE_ID = "dictionary-mobile-filter-styles";
 
 export default function Dictionary() {
   const navigate = useNavigate();
@@ -15,7 +11,15 @@ export default function Dictionary() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const PER_PAGE = 10;
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const run = async () => {
@@ -154,65 +158,80 @@ export default function Dictionary() {
             </button>
           </div>
 
-          {/* Search */}
-          <div style={styles.searchWrap}>
-            <span style={styles.searchIcon}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-            </span>
-            <input
-              type="text"
-              placeholder="Search English, meaning, or Chinese..."
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              style={styles.searchInput}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => { setSearchQuery(""); setCurrentPage(1); }}
-                style={styles.clearBtn}
-                aria-label="Clear search"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          {isMobile && (
+            <button
+              type="button"
+              onClick={() => setShowFilters((prev) => !prev)}
+              style={styles.filterToggleBtn}
+              aria-expanded={showFilters}
+            >
+              {showFilters ? "Hide filters" : "Show filters"}
+            </button>
+          )}
 
-          {/* Alphabet filter */}
-          <div style={styles.alphabetWrap}>
-            <div style={styles.alphabetList}>
-              {allLetters.map((letter) => (
-                <button
-                  key={letter}
-                  onClick={() => handleLetterClick(letter)}
-                  style={
-                    selectedLetter === letter
-                      ? letter === "All"
-                        ? styles.letterAllActive
-                        : styles.letterActive
-                      : letter === "All"
-                        ? styles.letterAll
-                        : styles.letter
-                  }
-                  aria-pressed={selectedLetter === letter}
-                >
-                  {letter}
-                </button>
-              ))}
-            </div>
-            {selectedLetter && (
-              <button
-                type="button"
-                onClick={() => { setSelectedLetter(null); setCurrentPage(1); }}
-                style={styles.clearFilterBtn}
-              >
-                Clear filter
-              </button>
-            )}
-          </div>
+          {(showFilters || !isMobile) && (
+            <>
+              {/* Search */}
+              <div style={styles.searchWrap}>
+                <span style={styles.searchIcon}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search English, meaning, or Chinese..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  style={styles.searchInput}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(""); setCurrentPage(1); }}
+                    style={styles.clearBtn}
+                    aria-label="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Alphabet filter */}
+              <div style={styles.alphabetWrap}>
+                <div style={styles.alphabetList}>
+                  {allLetters.map((letter) => (
+                    <button
+                      key={letter}
+                      onClick={() => handleLetterClick(letter)}
+                      style={
+                        selectedLetter === letter
+                          ? letter === "All"
+                            ? styles.letterAllActive
+                            : styles.letterActive
+                          : letter === "All"
+                            ? styles.letterAll
+                            : styles.letter
+                      }
+                      aria-pressed={selectedLetter === letter}
+                    >
+                      {letter}
+                    </button>
+                  ))}
+                </div>
+                {selectedLetter && (
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedLetter(null); setCurrentPage(1); }}
+                    style={styles.clearFilterBtn}
+                  >
+                    Clear filter
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -394,6 +413,19 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     color: "#1a1625",
     letterSpacing: "-0.01em",
+  },
+  filterToggleBtn: {
+    alignSelf: "flex-start",
+    background: "#fff",
+    border: "0.5px solid #D3D1C7",
+    borderRadius: 10,
+    padding: "7px 12px",
+    fontSize: 12,
+    fontWeight: 600,
+    color: "#3C3489",
+    cursor: "pointer",
+    marginBottom: 8,
+    display: "inline-flex",
   },
   subtitle: {
     color: "#7a756a",
@@ -637,7 +669,6 @@ const styles: Record<string, React.CSSProperties> = {
   table: {
     width: "100%",
     borderCollapse: "collapse" as const,
-    tableLayout: "fixed" as const,
   },
   th: {
     textAlign: "left" as const,
@@ -659,9 +690,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     color: "#2C2C2A",
     verticalAlign: "middle" as const,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap" as const,
   },
   meaningCell: {
     whiteSpace: "normal" as const,
