@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 type MeResponse = {
   user: { user_id: number; username: string; score: number };
@@ -64,6 +65,7 @@ export default function Dashboard() {
   const [showRanking, setShowRanking] = useState(false);
   const [rankingLoading, setRankingLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -461,15 +463,12 @@ export default function Dashboard() {
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Options</h2>
           <div style={styles.optRow}>
-            {["⚙️ Settings", "🔒 Change password"].map((opt) => (
-              <button
-                key={opt}
-                onClick={() => alert(`${opt} feature coming soon!`)}
-                style={styles.optBtn}
-              >
-                {opt}
-              </button>
-            ))}
+            <button
+              onClick={() => setChangePasswordOpen(true)}
+              style={styles.optBtn}
+            >
+              ⚙️ Change Password
+            </button>
             <button
               onClick={() => {
                 localStorage.removeItem("token");
@@ -483,6 +482,15 @@ export default function Dashboard() {
         </div>
 
         {error && <p style={styles.errorText}>Error: {error}</p>}
+        <ChangePasswordModal
+          open={changePasswordOpen}
+          onClose={() => setChangePasswordOpen(false)}
+          onSuccess={() => {
+            setChangePasswordOpen(false);
+            localStorage.removeItem("token");
+            window.location.href = "/quiz";
+          }}
+        />
       </div>
     </div>
   );

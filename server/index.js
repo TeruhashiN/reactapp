@@ -66,6 +66,40 @@ app.get('/api/me', requireAuth, async (req, res) => {
   return res.json({ user: { ...user, score: total, level } });
 });
 
+app.patch('/api/me/change-password', requireAuth, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body || {};
+    if (!current_password || !new_password) {
+      return res.status(400).json({ message: 'current_password and new_password are required' });
+    }
+
+    const user = await getUserById(req.user.user_id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.password !== current_password) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    if (new_password.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+
+    const [result] = await pool.query(
+      `UPDATE \`user\` SET password = ? WHERE user_id = ?`,
+      [new_password, req.user.user_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(500).json({ message: 'Failed to update password' });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err?.message });
+  }
+});
+
 app.get('/api/me/scores', requireAuth, async (req, res) => {
   const level = Number(req.query.level ?? 1);
   const allScores = await getLevelScores(req.user.user_id);

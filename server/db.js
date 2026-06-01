@@ -23,7 +23,7 @@ async function getUserByUsername(username) {
 
 async function getUserById(userId) {
   const [rows] = await pool.query(
-    `SELECT user_id, username, score FROM \`${TABLE()}\` WHERE user_id = ? LIMIT 1`,
+    `SELECT user_id, username, password, score FROM \`${TABLE()}\` WHERE user_id = ? LIMIT 1`,
     [userId]
   );
   return rows[0] || null;
