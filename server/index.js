@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const jwt = require('jsonwebtoken');
-const { createTables, getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore } = require('./db');
+const { createTables, getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore, TABLE } = require('./db');
 const { requireAuth } = require('./auth');
 const { pool } = require('./db');
 
@@ -63,7 +63,7 @@ app.get('/api/me', requireAuth, async (req, res) => {
   if (!user) return res.status(404).json({ message: 'User not found' });
   const total = await getTotalScore(req.user.user_id);
   const level = Math.min(10, Math.floor(total / 50) + 1);
-  return res.json({ user: { ...user, score: total, level } });
+  return res.json({ user: { ...user, score: total, level, role: user.role || 'user' } });
 });
 
 app.patch('/api/me/change-password', requireAuth, async (req, res) => {
@@ -94,6 +94,44 @@ app.patch('/api/me/change-password', requireAuth, async (req, res) => {
     }
 
     return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err?.message });
+  }
+});
+
+app.post('/api/admin/create-user', requireAuth, async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!username || !password) {
+      return res.status(400).json({ message: 'username and password are required' });
+    }
+    if (username.length < 3) {
+      return res.status(400).json({ message: 'username must be at least 3 characters' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'password must be at least 6 characters' });
+    }
+
+    const duplicate = await getUserByUsername(username);
+    if (duplicate) {
+      return res.status(409).json({ message: 'Username already exists' });
+    }
+
+    const maxIdRow = await pool.query(`SELECT MAX(user_id) AS maxId FROM \`${TABLE()}\``);
+    const nextId = Number(maxIdRow[0][0]?.maxId ?? 0) + 1;
+
+    await pool.query(
+      `INSERT INTO \`${TABLE()}\` (user_id, username, password, score) VALUES (?, ?, ?, ?)`,
+      [nextId, username, password, 0]
+    );
+
+    const [newUser] = await getUserByUsername(username);
+    if (!newUser) {
+      return res.status(500).json({ message: 'Failed to load newly created user' });
+    }
+
+    return res.status(201).json({ user: { user_id: newUser.user_id, username: newUser.username, role: newUser.role } });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Server error', error: err?.message });

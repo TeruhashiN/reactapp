@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import ChangePasswordModal from "./ChangePasswordModal";
+import CreateAccountModal from "./CreateAccountModal";
 
 type MeResponse = {
   user: { user_id: number; username: string; score: number };
@@ -66,6 +67,7 @@ export default function Dashboard() {
   const [rankingLoading, setRankingLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [createAccountOpen, setCreateAccountOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -463,24 +465,36 @@ export default function Dashboard() {
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Options</h2>
           <div style={styles.optRow}>
-            <button
-              onClick={() => setChangePasswordOpen(true)}
-              style={styles.optBtn}
-            >
-              ⚙️ Change Password
-            </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                window.location.href = "/quiz";
-              }}
-              style={{ ...styles.optBtn, ...styles.optBtnDanger }}
-            >
-              🚪 Log out
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => setChangePasswordOpen(true)}
+                  style={styles.optBtn}
+                >
+                  ⚙️ Change Password
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateAccountOpen(true)}
+                  style={styles.optBtn}
+                >
+                  👤 Create account
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("token");
+                    window.location.href = "/quiz";
+                  }}
+                  style={{ ...styles.optBtn, ...styles.optBtnDanger }}
+                >
+                  🚪 Log out
+                </button>
+              </div>
         </div>
 
+        <CreateAccountModal
+          open={createAccountOpen}
+          onClose={() => setCreateAccountOpen(false)}
+        />
         {error && <p style={styles.errorText}>Error: {error}</p>}
         <ChangePasswordModal
           open={changePasswordOpen}

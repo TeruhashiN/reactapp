@@ -80,4 +80,4 @@ async function createTables() {
   }
 }
 
-module.exports = { getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore, createTables, pool };
+module.exports = { getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore, createTables, pool, TABLE };
