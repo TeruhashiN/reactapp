@@ -195,7 +195,7 @@ async function createTables() {
   `);
   const [rows] = await pool.query(`SELECT user_id, score FROM \`${TABLE()}\` WHERE score > 0`);
   for (const row of rows) {
-    const capped = Math.min(Number(row.score), 50);
+    const capped = Math.min(Number(row.score), 25);
     await pool.query(
       `UPDATE level_scores SET best_score = GREATEST(best_score, ?) WHERE user_id = ?`,
       [capped, row.user_id]

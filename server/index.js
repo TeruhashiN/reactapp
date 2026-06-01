@@ -35,7 +35,7 @@ app.post('/api/login', async (req, res) => {
     }
 
     const total = await getTotalScore(user.user_id);
-    const level = Math.min(10, Math.floor(total / 50) + 1);
+    const level = Math.min(20, Math.floor(total / 25) + 1);
 
     const payload = {
       user_id: user.user_id,
@@ -62,7 +62,7 @@ app.get('/api/me', requireAuth, async (req, res) => {
   const user = await getUserById(req.user.user_id);
   if (!user) return res.status(404).json({ message: 'User not found' });
   const total = await getTotalScore(req.user.user_id);
-  const level = Math.min(10, Math.floor(total / 50) + 1);
+  const level = Math.min(20, Math.floor(total / 25) + 1);
   return res.json({ user: { ...user, score: total, level, role: user.role || 'user' } });
 });
 
@@ -183,7 +183,7 @@ app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
 
 app.get('/api/leaderboard', requireAuth, async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+    const limit = Math.min(parseInt(req.query.limit || '25', 10), 100);
     const [allTotals] = await pool.query(
       `SELECT u.user_id, u.username, COALESCE(SUM(ls.best_score), 0) as total FROM \`user\` u LEFT JOIN level_scores ls ON u.user_id = ls.user_id GROUP BY u.user_id, u.username ORDER BY total DESC LIMIT ?`,
       [limit]
@@ -288,9 +288,9 @@ function shuffle(arr) {
 app.get('/api/quiz/questions', async (req, res) => {
   try {
     const level = parseInt(req.query.level || '1', 10);
-    const limit = Math.min(parseInt(req.query.limit || '50', 10), 50);
-    const levelStart = (level - 1) * 50 + 1;
-    const levelEnd = level * 50;
+    const limit = Math.min(parseInt(req.query.limit || '25', 10), 25);
+    const levelStart = (level - 1) * 25 + 1;
+    const levelEnd = level * 25;
 
     if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {
       return res.status(500).json({ message: 'Database not configured.' });
@@ -312,7 +312,7 @@ app.get('/api/quiz/questions', async (req, res) => {
       questionQuery = `SELECT words AS word, meaning FROM \`${table}\` WHERE id BETWEEN ? AND ? AND meaning IS NOT NULL AND meaning != '' ORDER BY RAND()`;
       queryParams = [levelStart, levelEnd];
     } else {
-      const offset = (level - 1) * 50;
+      const offset = (level - 1) * 25;
       questionQuery = `SELECT words AS word, meaning FROM \`${table}\` WHERE meaning IS NOT NULL AND meaning != '' ORDER BY words ASC LIMIT ? OFFSET ?`;
       queryParams = [limit, offset];
     }

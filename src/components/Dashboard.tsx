@@ -12,22 +12,22 @@ const clamp = (n: number, min: number, max: number) =>
 
 function levelFromScore(score: number) {
   if (!Number.isFinite(score) || score < 0) return 1;
-  // L1: 0-49, L2: 50-99, ... L10: 450+
-  return Math.min(10, Math.floor(score / 50) + 1);
+  // L1: 0-24, L2: 25-49, ... L20: 475+
+  return Math.min(20, Math.floor(score / 25) + 1);
 }
 
 function progressToNextLevel(score: number) {
   const level = levelFromScore(score);
 
-  const currentRangeStart = (level - 1) * 50;
-  const currentRangeEnd = level * 50;
+  const currentRangeStart = (level - 1) * 25;
+  const currentRangeEnd = level * 25;
 
   // Already at max level
-  if (level >= 10) {
+  if (level >= 20) {
     return {
       level,
       progress: 1,
-      currentRangeStart: 450,
+      currentRangeStart: 475,
       currentRangeEnd: 500,
     };
   }
@@ -188,14 +188,14 @@ export default function Dashboard() {
         {/* ── Stat cards ── */}
         <div style={styles.statGrid}>
           {[
-            {
-              label: "LEVEL",
-              value: `L${derived.level}`,
-              sub: "of 10 total",
-              color: "#3C3489",
-              bg: "#EEEDFE",
-              icon: "🏆",
-            },
+{
+               label: "LEVEL",
+               value: `L${derived.level}`,
+               sub: "of 20 total",
+               color: "#3C3489",
+               bg: "#EEEDFE",
+               icon: "🏆",
+             },
             {
               label: "SCORE",
               value: derived.score,
@@ -239,9 +239,9 @@ export default function Dashboard() {
           <div style={styles.cardHeader}>
             <div>
               <h2 style={styles.cardTitle}>Choose a level</h2>
-              <p style={styles.cardSub}>
-                Unlock higher levels by scoring 50 points for each level
-              </p>
+<p style={styles.cardSub}>
+                 Unlock higher levels by scoring 25 points for each level
+               </p>
             </div>
             <span style={styles.badgePurple}>
               Unlocked up to L{derived.level}
@@ -447,9 +447,9 @@ export default function Dashboard() {
         <div style={styles.bottomGrid}>
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Progress to next level</h2>
-            <p style={styles.cardSub}>
-              L{derived.level} → L{Math.min(derived.level + 1, 10)}
-            </p>
+<p style={styles.cardSub}>
+               L{derived.level} → L{Math.min(derived.level + 1, 20)}
+             </p>
             <div style={styles.progressWrap}>
               <div
                 style={{ ...styles.progressBar, width: `${progressPct}%` }}
@@ -462,11 +462,11 @@ export default function Dashboard() {
               <span style={{ fontWeight: 500 }}>{progressPct}%</span>
               <span>{derived.currentRangeEnd} pts</span>
             </div>
-            <p style={{ ...styles.cardSub, marginTop: 12 }}>
-              {derived.level < 10
-                ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 10!`
-                : "Keep scoring to reach Level 10!"}
-            </p>
+<p style={{ ...styles.cardSub, marginTop: 12 }}>
+               {derived.level < 20
+                 ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 20!`
+                 : "Keep scoring to reach Level 20!"}
+             </p>
           </div>
 
           <div style={styles.card}>
