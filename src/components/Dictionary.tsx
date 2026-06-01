@@ -7,7 +7,7 @@ type DictionaryItem = {
   chinese: string;
 };
 
-const STYLE_ID = "dictionary-mobile-filter-styles";
+
 
 export default function Dictionary() {
   const navigate = useNavigate();

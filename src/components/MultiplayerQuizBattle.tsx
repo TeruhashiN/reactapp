@@ -34,22 +34,7 @@ type BattleState = {
   startTime: string | null;
 };
 
-function makeEmptyState(): BattleState {
-  return {
-    challengerId: 0,
-    opponentId: null,
-    questionCount: 10,
-    questions: [],
-    challengerScore: 0,
-    opponentScore: 0,
-    challengerCurrentQ: 0,
-    opponentCurrentQ: 0,
-    challengerFinished: false,
-    opponentFinished: false,
-    opponentUsername: null,
-    startTime: null,
-  };
-}
+
 
 function readBattleState(): BattleState | null {
   try {
@@ -81,7 +66,9 @@ async function safeJson(res: Response) {
 export default function MultiplayerQuizBattle() {
   const navigate = useNavigate();
 
-  const [players, setPlayers] = useState<{ user_id: number; username: string; score: number }[]>([]);
+  const [players, setPlayers] = useState<
+    { user_id: number; username: string; score: number }[]
+  >([]);
   const [meId, setMeId] = useState<number | null>(null);
   const [meUsername, setMeUsername] = useState<string>("You");
 
@@ -104,7 +91,8 @@ export default function MultiplayerQuizBattle() {
   const [finished, setFinished] = useState(false);
   const [battleResult, setBattleResult] = useState<string | null>(null);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -123,13 +111,15 @@ export default function MultiplayerQuizBattle() {
         ]);
         if (!meRes.ok) throw new Error("Failed to fetch current user");
         const meData = await safeJson(meRes);
-        if (!meData.ok || !meData.data?.user?.user_id) throw new Error("Invalid current user response");
+        if (!meData.ok || !meData.data?.user?.user_id)
+          throw new Error("Invalid current user response");
         setMeId(meData.data.user.user_id);
         setMeUsername(meData.data.user.username || "You");
 
         if (!lbRes.ok) throw new Error("Failed to fetch players");
         const lbData = await safeJson(lbRes);
-        if (!lbData.ok || !lbData.data?.users) throw new Error("Invalid players response");
+        if (!lbData.ok || !lbData.data?.users)
+          throw new Error("Invalid players response");
         setPlayers(lbData.data.users);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Failed to load players");
@@ -140,17 +130,12 @@ export default function MultiplayerQuizBattle() {
     load();
   }, [token]);
 
-  const opponentPlayers = meId ? players.filter((p) => p.user_id !== meId) : players;
+  const opponentPlayers = meId
+    ? players.filter((p) => p.user_id !== meId)
+    : players;
   const selectedOpponent = players.find((p) => p.user_id === opponentId);
 
-  const updateLocalBattle = (state: BattleState) => {
-    setOpponentScore(state.opponentScore);
-    setCurrent(state.challengerCurrentQ);
-    setScore(state.challengerScore);
-    if (state.opponentFinished) {
-      setFinished(true);
-    }
-  };
+
 
   const startBattle = async () => {
     if (!opponentId || !meId) return;
@@ -158,12 +143,16 @@ export default function MultiplayerQuizBattle() {
     setError(null);
     try {
       const params = new URLSearchParams({ count: String(count) });
-      const res = await fetch(`${API}/timer-quiz/questions?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token ?? ""}` },
-      });
+      const res = await fetch(
+        `${API}/timer-quiz/questions?${params.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token ?? ""}` },
+        },
+      );
       if (!res.ok) throw new Error("Failed to load questions");
       const data = await safeJson(res);
-      if (!data.ok || !data.data?.questions) throw new Error("Invalid questions response");
+      if (!data.ok || !data.data?.questions)
+        throw new Error("Invalid questions response");
 
       const qs: Question[] = data.data.questions.map((q: any) => ({
         id: q.id,
@@ -210,12 +199,30 @@ export default function MultiplayerQuizBattle() {
     if (!existing || !meId) return;
     const updated: BattleState = {
       ...existing,
-      challengerScore: existing.challengerId === meId ? existing.challengerScore : existing.opponentScore,
-      opponentScore: existing.challengerId === meId ? existing.opponentScore : existing.challengerScore,
-      challengerCurrentQ: existing.challengerId === meId ? existing.challengerCurrentQ : existing.opponentCurrentQ,
-      opponentCurrentQ: existing.challengerId === meId ? existing.opponentCurrentQ : existing.challengerCurrentQ,
-      challengerFinished: existing.challengerId === meId ? existing.challengerFinished : existing.opponentFinished,
-      opponentFinished: existing.challengerId === meId ? existing.opponentFinished : existing.challengerFinished,
+      challengerScore:
+        existing.challengerId === meId
+          ? existing.challengerScore
+          : existing.opponentScore,
+      opponentScore:
+        existing.challengerId === meId
+          ? existing.opponentScore
+          : existing.challengerScore,
+      challengerCurrentQ:
+        existing.challengerId === meId
+          ? existing.challengerCurrentQ
+          : existing.opponentCurrentQ,
+      opponentCurrentQ:
+        existing.challengerId === meId
+          ? existing.opponentCurrentQ
+          : existing.challengerCurrentQ,
+      challengerFinished:
+        existing.challengerId === meId
+          ? existing.challengerFinished
+          : existing.opponentFinished,
+      opponentFinished:
+        existing.challengerId === meId
+          ? existing.opponentFinished
+          : existing.challengerFinished,
     };
     writeBattleState(updated);
     setStatus("in_progress");
@@ -233,19 +240,36 @@ export default function MultiplayerQuizBattle() {
       if (!state || !meId) return;
 
       const iAmChallenger = state.challengerId === meId;
-      const myCurrent = iAmChallenger ? state.challengerCurrentQ : state.opponentCurrentQ;
-      const myFinished = iAmChallenger ? state.challengerFinished : state.opponentFinished;
-      const opponentFinished = iAmChallenger ? state.opponentFinished : state.challengerFinished;
-      const opponentScoreRaw = iAmChallenger ? state.opponentScore : state.challengerScore;
+      const myCurrent = iAmChallenger
+        ? state.challengerCurrentQ
+        : state.opponentCurrentQ;
+      const myFinished = iAmChallenger
+        ? state.challengerFinished
+        : state.opponentFinished;
+      const opponentFinished = iAmChallenger
+        ? state.opponentFinished
+        : state.challengerFinished;
+      const opponentScoreRaw = iAmChallenger
+        ? state.opponentScore
+        : state.challengerScore;
 
       setCurrent(myCurrent);
       setScore(iAmChallenger ? state.challengerScore : state.opponentScore);
       setOpponentScore(opponentScoreRaw);
 
-      if (status === "waiting" && state.opponentId && state.opponentId !== state.challengerId) {
-        const opponentInfo = players.find((p) => p.user_id === state.opponentId);
+      if (
+        status === "waiting" &&
+        state.opponentId &&
+        state.opponentId !== state.challengerId
+      ) {
+        const opponentInfo = players.find(
+          (p) => p.user_id === state.opponentId,
+        );
         if (opponentInfo) setOpponentUsername(opponentInfo.username);
-        if (state.opponentId !== null && state.opponentId !== state.challengerId) {
+        if (
+          state.opponentId !== null &&
+          state.opponentId !== state.challengerId
+        ) {
           setStatus("in_progress");
         }
       }
@@ -255,9 +279,16 @@ export default function MultiplayerQuizBattle() {
       }
 
       if (myFinished && opponentFinished && !battleResult) {
-        const myTotal = iAmChallenger ? state.challengerScore : state.opponentScore;
+        const myTotal = iAmChallenger
+          ? state.challengerScore
+          : state.opponentScore;
         const oppTotal = opponentScoreRaw;
-        const resultMsg = myTotal > oppTotal ? "🏆 Victory!" : myTotal < oppTotal ? "💥 Defeated" : "🤝 Draw!";
+        const resultMsg =
+          myTotal > oppTotal
+            ? "🏆 Victory!"
+            : myTotal < oppTotal
+              ? "💥 Defeated"
+              : "🤝 Draw!";
         setBattleResult(resultMsg);
       }
     };
@@ -266,7 +297,10 @@ export default function MultiplayerQuizBattle() {
     pollRef.current = window.setInterval(poll, 1000);
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && (status === "in_progress" || status === "waiting")) {
+      if (
+        e.key === STORAGE_KEY &&
+        (status === "in_progress" || status === "waiting")
+      ) {
         poll();
       }
     };
@@ -295,7 +329,9 @@ export default function MultiplayerQuizBattle() {
     const iAmChallenger = state.challengerId === meId;
     const nextIndex = current + 1;
     const done = nextIndex >= questions.length;
-    const newScore = (iAmChallenger ? state.challengerScore : state.opponentScore) + (ok ? 1 : 0);
+    const newScore =
+      (iAmChallenger ? state.challengerScore : state.opponentScore) +
+      (ok ? 1 : 0);
 
     const updated: BattleState = {
       ...state,
@@ -314,9 +350,19 @@ export default function MultiplayerQuizBattle() {
       setTimeout(() => {
         const fresh = readBattleState();
         if (!fresh) return;
-        const myTotal = iAmChallenger ? fresh.challengerScore : fresh.opponentScore;
-        const oppTotal = iAmChallenger ? fresh.opponentScore : fresh.challengerScore;
-        setBattleResult(myTotal > oppTotal ? "🏆 Victory!" : myTotal < oppTotal ? "💥 Defeated" : "🤝 Draw!");
+        const myTotal = iAmChallenger
+          ? fresh.challengerScore
+          : fresh.opponentScore;
+        const oppTotal = iAmChallenger
+          ? fresh.opponentScore
+          : fresh.challengerScore;
+        setBattleResult(
+          myTotal > oppTotal
+            ? "🏆 Victory!"
+            : myTotal < oppTotal
+              ? "💥 Defeated"
+              : "🤝 Draw!",
+        );
       }, 300);
     }
   };
@@ -352,32 +398,76 @@ export default function MultiplayerQuizBattle() {
   };
 
   if (status === "waiting") {
-    const displayOpponent = opponentUsername || selectedOpponent?.username || "Opponent";
+    const displayOpponent =
+      opponentUsername || selectedOpponent?.username || "Opponent";
     return (
       <div style={styles.page}>
         <div style={styles.container}>
           <div style={styles.card}>
-            <h2 style={{ ...styles.cardTitle, marginBottom: 8 }}>⏳ Waiting for opponent...</h2>
+            <h2 style={{ ...styles.cardTitle, marginBottom: 8 }}>
+              ⏳ Waiting for opponent...
+            </h2>
             <p style={{ ...styles.cardSub, marginBottom: 12 }}>
-              Ask <b>{displayOpponent}</b> to open this same page on another tab/device and pick you as the opponent to start the battle.
+              Ask <b>{displayOpponent}</b> to open this same page on another
+              tab/device and pick you as the opponent to start the battle.
             </p>
             <div style={styles.liveScores}>
-              <div style={{ ...styles.scoreBox, background: "#EEEDFE", color: "#3C3489" }}>
-                <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em" }}>Challenger</div>
-                <div style={{ fontSize: 12, marginBottom: 4 }}>{meUsername}</div>
+              <div
+                style={{
+                  ...styles.scoreBox,
+                  background: "#EEEDFE",
+                  color: "#3C3489",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Challenger
+                </div>
+                <div style={{ fontSize: 12, marginBottom: 4 }}>
+                  {meUsername}
+                </div>
                 <div style={{ fontSize: 24, fontWeight: 600 }}>{0}</div>
               </div>
-              <div style={{ ...styles.scoreBox, background: "#FAECE7", color: "#993C1D" }}>
-                <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em" }}>Opponent</div>
-                <div style={{ fontSize: 12, marginBottom: 4 }}>{displayOpponent}</div>
+              <div
+                style={{
+                  ...styles.scoreBox,
+                  background: "#FAECE7",
+                  color: "#993C1D",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Opponent
+                </div>
+                <div style={{ fontSize: 12, marginBottom: 4 }}>
+                  {displayOpponent}
+                </div>
                 <div style={{ fontSize: 24, fontWeight: 600 }}>{0}</div>
               </div>
             </div>
             <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-              <button type="button" onClick={leaveBattle} style={{ ...styles.secondaryBtn, flex: 1 }}>
+              <button
+                type="button"
+                onClick={leaveBattle}
+                style={{ ...styles.secondaryBtn, flex: 1 }}
+              >
                 Cancel
               </button>
-              <button type="button" onClick={markMeWaiting} style={{ ...styles.startBtn, flex: 1 }}>
+              <button
+                type="button"
+                onClick={markMeWaiting}
+                style={{ ...styles.startBtn, flex: 1 }}
+              >
                 Start Anyway (practice)
               </button>
             </div>
@@ -387,7 +477,12 @@ export default function MultiplayerQuizBattle() {
     );
   }
 
-  if (status === "in_progress" && questions.length > 0 && !finished && !battleResult) {
+  if (
+    status === "in_progress" &&
+    questions.length > 0 &&
+    !finished &&
+    !battleResult
+  ) {
     const q = questions[current];
     return (
       <div style={styles.page}>
@@ -398,7 +493,8 @@ export default function MultiplayerQuizBattle() {
                 Q {current + 1} / {questions.length}
               </span>
               <span style={{ fontWeight: 500 }}>
-                Versus {opponentUsername || selectedOpponent?.username || "Opponent"}
+                Versus{" "}
+                {opponentUsername || selectedOpponent?.username || "Opponent"}
               </span>
             </div>
             <div style={styles.progressWrap}>
@@ -411,29 +507,76 @@ export default function MultiplayerQuizBattle() {
             </div>
 
             <div style={styles.liveScores}>
-              <div style={{ ...styles.scoreBox, background: "#EEEDFE", color: "#3C3489" }}>
-                <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em" }}>You ({meUsername})</div>
+              <div
+                style={{
+                  ...styles.scoreBox,
+                  background: "#EEEDFE",
+                  color: "#3C3489",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  You ({meUsername})
+                </div>
                 <div style={{ fontSize: 20, fontWeight: 600 }}>{score}</div>
                 <div style={{ fontSize: 11, color: "#3C3489" }}>
                   Q {current + 1}
                 </div>
               </div>
-              <div style={{ ...styles.scoreBox, background: "#FAECE7", color: "#993C1D" }}>
-                <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div
+                style={{
+                  ...styles.scoreBox,
+                  background: "#FAECE7",
+                  color: "#993C1D",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
                   {opponentUsername || selectedOpponent?.username || "Opponent"}
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 600 }}>{opponentScore}</div>
+                <div style={{ fontSize: 20, fontWeight: 600 }}>
+                  {opponentScore}
+                </div>
                 <div style={{ fontSize: 11, color: "#993C1D" }}>
-                  Q {opponentScore !== undefined ? Math.min(opponentScore, questions.length) : 0}
+                  Q{" "}
+                  {opponentScore !== undefined
+                    ? Math.min(opponentScore, questions.length)
+                    : 0}
                 </div>
               </div>
             </div>
 
             <div style={styles.questionBlock}>
-              <p style={{ ...styles.cardSub, marginBottom: 6, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <p
+                style={{
+                  ...styles.cardSub,
+                  marginBottom: 6,
+                  textAlign: "center",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
                 What does this word mean?
               </p>
-              <h3 style={{ ...styles.cardTitle, marginBottom: 16, fontSize: 18, textAlign: "center", fontStyle: "italic" }}>
+              <h3
+                style={{
+                  ...styles.cardTitle,
+                  marginBottom: 16,
+                  fontSize: 18,
+                  textAlign: "center",
+                  fontStyle: "italic",
+                }}
+              >
                 “{q.word}”
               </h3>
               <div style={optionsGridStyle}>
@@ -442,8 +585,13 @@ export default function MultiplayerQuizBattle() {
                   const plain = opt.replace(/^[A-D]\. /, "");
                   let btnStyle: React.CSSProperties = optionBtnBase;
                   if (result && opt === selectedAnswer) {
-                    btnStyle = result === "correct" ? optionBtnCorrect : optionBtnWrong;
-                  } else if (result && result === "wrong" && plain === q.answer) {
+                    btnStyle =
+                      result === "correct" ? optionBtnCorrect : optionBtnWrong;
+                  } else if (
+                    result &&
+                    result === "wrong" &&
+                    plain === q.answer
+                  ) {
                     btnStyle = optionBtnReveal;
                   }
                   const isChosen = selectedAnswer === opt;
@@ -479,9 +627,15 @@ export default function MultiplayerQuizBattle() {
                     fontSize: 13,
                   }}
                 >
-                  {result === "correct" ? "✅ Correct!" : `❌ Wrong! Answer: ${q.answer}`}
+                  {result === "correct"
+                    ? "✅ Correct!"
+                    : `❌ Wrong! Answer: ${q.answer}`}
                 </span>
-                <button type="button" onClick={nextQuestion} style={nextBtnStyle}>
+                <button
+                  type="button"
+                  onClick={nextQuestion}
+                  style={nextBtnStyle}
+                >
                   {current + 1 >= questions.length - 1 ? "Finish" : "Next →"}
                 </button>
               </div>
@@ -492,31 +646,59 @@ export default function MultiplayerQuizBattle() {
     );
   }
 
-  if ((finished || battleResult || (status === "in_progress" && questions.length > 0)) && battleResult) {
-    const total = questions.length || count;
+  if (
+    (finished ||
+      battleResult ||
+      (status === "in_progress" && questions.length > 0)) &&
+    battleResult
+  ) {
     return (
       <div style={styles.page}>
         <div style={styles.container}>
           <div style={styles.card}>
-            <h2 style={{ ...styles.cardTitle, fontSize: 18, marginBottom: 8 }}>{battleResult}</h2>
+            <h2 style={{ ...styles.cardTitle, fontSize: 18, marginBottom: 8 }}>
+              {battleResult}
+            </h2>
             <p style={{ ...styles.cardSub, marginBottom: 20 }}>
               You: {score} — Opponent: {opponentScore}
             </p>
             <div style={optionsGridStyle}>
-              <div style={{ ...scoreBoxStyle, background: "#EEEDFE", color: "#3C3489" }}>
+              <div
+                style={{
+                  ...scoreBoxStyle,
+                  background: "#EEEDFE",
+                  color: "#3C3489",
+                }}
+              >
                 <div style={{ fontWeight: 600 }}>You</div>
                 <div style={{ fontSize: 20 }}>{score}</div>
               </div>
-              <div style={{ ...scoreBoxStyle, background: "#FAECE7", color: "#993C1D" }}>
-                <div style={{ fontWeight: 600 }}>{opponentUsername || "Opponent"}</div>
+              <div
+                style={{
+                  ...scoreBoxStyle,
+                  background: "#FAECE7",
+                  color: "#993C1D",
+                }}
+              >
+                <div style={{ fontWeight: 600 }}>
+                  {opponentUsername || "Opponent"}
+                </div>
                 <div style={{ fontSize: 20 }}>{opponentScore}</div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
-              <button type="button" onClick={leaveBattle} style={{ ...styles.startBtn, flex: 1 }}>
+              <button
+                type="button"
+                onClick={leaveBattle}
+                style={{ ...styles.startBtn, flex: 1 }}
+              >
                 Play Again
               </button>
-              <button type="button" onClick={() => navigate("/dashboard")} style={{ ...styles.secondaryBtn, flex: 1 }}>
+              <button
+                type="button"
+                onClick={() => navigate("/dashboard")}
+                style={{ ...styles.secondaryBtn, flex: 1 }}
+              >
                 Dashboard
               </button>
             </div>
@@ -537,22 +719,32 @@ export default function MultiplayerQuizBattle() {
               ...styles.backBtn,
               opacity: 0.8,
             }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = "1")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = "0.8")}
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.opacity = "1")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.opacity = "0.8")
+            }
           >
             ← Dashboard
           </button>
-          <h2 style={{ ...styles.cardTitle, margin: "12px 0 4px" }}>⚔️ Multiplayer Quiz Battle</h2>
+          <h2 style={{ ...styles.cardTitle, margin: "12px 0 4px" }}>
+            ⚔️ Multiplayer Quiz Battle
+          </h2>
           <p style={styles.cardSub}>
-            Challenge another player from the leaderboard and battle head-to-head in real time.
+            Challenge another player from the leaderboard and battle
+            head-to-head in real time.
           </p>
           {error && <p style={styles.errorText}>Error: {error}</p>}
         </div>
 
         <div style={styles.card}>
-          <h3 style={{ ...styles.cardTitle, marginBottom: 4 }}>1. Choose Active Player</h3>
+          <h3 style={{ ...styles.cardTitle, marginBottom: 4 }}>
+            1. Choose Active Player
+          </h3>
           <p style={{ ...styles.cardSub, marginBottom: 12 }}>
-            Select a player to challenge. Your score updates will be shown live to them and theirs to you.
+            Select a player to challenge. Your score updates will be shown live
+            to them and theirs to you.
           </p>
 
           {fetching ? (
@@ -608,7 +800,9 @@ export default function MultiplayerQuizBattle() {
                       >
                         {p.username}
                       </div>
-                      <div style={{ fontSize: 12, color: "#888780" }}>Score: {p.score}</div>
+                      <div style={{ fontSize: 12, color: "#888780" }}>
+                        Score: {p.score}
+                      </div>
                     </div>
                   </button>
                 );
@@ -619,7 +813,9 @@ export default function MultiplayerQuizBattle() {
 
         {opponentId && (
           <div style={styles.card}>
-            <h3 style={{ ...styles.cardTitle, marginBottom: 4 }}>2. How many questions?</h3>
+            <h3 style={{ ...styles.cardTitle, marginBottom: 4 }}>
+              2. How many questions?
+            </h3>
             <p style={{ ...styles.cardSub, marginBottom: 12 }}>
               Choose how many questions you want in this battle.
             </p>
@@ -651,7 +847,9 @@ export default function MultiplayerQuizBattle() {
                 cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              {loading ? "Loading questions…" : `Start ${count}-Question Battle`}
+              {loading
+                ? "Loading questions…"
+                : `Start ${count}-Question Battle`}
             </button>
           </div>
         )}
@@ -692,7 +890,10 @@ const playerCard: React.CSSProperties = {
 };
 
 const playerCardDefault: React.CSSProperties = { borderColor: "#D3D1C7" };
-const playerCardActive: React.CSSProperties = { borderColor: "#3C3489", background: "#F8F7FF" };
+const playerCardActive: React.CSSProperties = {
+  borderColor: "#3C3489",
+  background: "#F8F7FF",
+};
 
 const countGridStyle: React.CSSProperties = {
   display: "grid",
@@ -713,8 +914,16 @@ const countBtn: React.CSSProperties = {
   fontFamily: "inherit",
 };
 
-const countBtnDefault: React.CSSProperties = { background: "#fff", borderColor: "#B4B2A9", color: "#2C2C2A" };
-const countBtnActive: React.CSSProperties = { background: "#EEEDFE", borderColor: "#3C3489", color: "#3C3489" };
+const countBtnDefault: React.CSSProperties = {
+  background: "#fff",
+  borderColor: "#B4B2A9",
+  color: "#2C2C2A",
+};
+const countBtnActive: React.CSSProperties = {
+  background: "#EEEDFE",
+  borderColor: "#3C3489",
+  color: "#3C3489",
+};
 
 const optionsGridStyle: React.CSSProperties = {
   display: "grid",

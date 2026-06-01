@@ -489,12 +489,6 @@ export default function LocalMultiplayer() {
                   ↺ Play Again
                 </button>
                 <button
-                  onClick={() => navigate("/local-multiplayer")}
-                  style={{ ...s.btn, ...s.btnGhost }}
-                >
-                  Back to Setup
-                </button>
-                <button
                   onClick={() => navigate("/dashboard")}
                   style={{ ...s.btn, ...s.btnGhost }}
                 >
