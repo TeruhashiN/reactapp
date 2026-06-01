@@ -15,6 +15,26 @@ type AnswerRecord = {
   ok: boolean;
 };
 
+const OPTION_LETTERS = ["A", "B", "C", "D"] as const;
+type ToneType = OscillatorType;
+
+function playTone(freq: number, duration: number, type?: ToneType, vol?: number) {
+  try {
+    const w = window as any;
+    const ctx = new (w.AudioContext || w.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type ?? "sine";
+    osc.frequency.value = freq;
+    gain.gain.value = vol ?? 0.1;
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration / 1000);
+  } catch {}
+}
+
 async function fetchBestForLevel(level: number): Promise<number> {
   try {
     const token = localStorage.getItem("token");
@@ -53,8 +73,6 @@ async function saveLevelScore(
   }
 }
 
-const OPTION_LETTERS = ["A", "B", "C", "D"];
-
 export default function QuizMode() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -75,6 +93,10 @@ export default function QuizMode() {
   const [error, setError] = useState<string | null>(null);
 
   const ringRef = useRef<SVGCircleElement>(null);
+  const pressedKeys = useRef<Set<string>>(new Set());
+
+  const handleSelectRef = useRef<(opt: string) => void>(() => {});
+  const handleNextRef = useRef<() => void>(() => {});
 
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
@@ -97,12 +119,38 @@ export default function QuizMode() {
     fetchQuestions();
   }, [fetchQuestions]);
 
-  // Load best score from server on mount
   useEffect(() => {
     fetchBestForLevel(level).then(setBestScore);
   }, [level]);
 
-  // Animate the SVG ring when results are shown
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (finished) return;
+      const key = e.key.toUpperCase();
+
+      if (key === "ENTER" && selected) {
+        handleNextRef.current();
+        return;
+      }
+
+      const idx = OPTION_LETTERS.indexOf(key as any);
+      if (idx >= 0 && idx < (questions[current]?.options.length ?? 0)) {
+        if (pressedKeys.current.has(key)) return;
+        pressedKeys.current.add(key);
+        handleSelectRef.current(questions[current].options[idx]);
+      }
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      pressedKeys.current.delete(e.key.toUpperCase());
+    }
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [finished, questions, current, selected]);
+
   useEffect(() => {
     if (!finished || !ringRef.current || questions.length === 0) return;
     const pct = score / questions.length;
@@ -120,15 +168,12 @@ export default function QuizMode() {
   }, [finished, score, questions.length]);
 
   function handleSelect(opt: string) {
-    // Allow re-selection: user can freely change their choice per question.
     const q = questions[current];
     if (!q) return;
 
     const chosenText = opt.replace(/^[A-D]\. /, "");
     const ok = chosenText === q.answer;
 
-    // Determine previous correctness for this question using current state snapshot.
-    // This avoids relying on `awarded` from a stale render.
     const prevCorrect = Boolean(answers.find((a) => a.word === q.word)?.ok);
 
     setSelected(opt);
@@ -139,7 +184,6 @@ export default function QuizMode() {
       return next;
     });
 
-    // Update score exactly once based on correctness transition.
     setScore((s) => {
       if (!prevCorrect && ok) return s + 1;
       if (prevCorrect && !ok) return s - 1;
@@ -161,9 +205,14 @@ export default function QuizMode() {
       }
       return [...prev, rec];
     });
+
+    playTone(500, 40, "sine", 0.06);
   }
 
+  handleSelectRef.current = handleSelect;
+
   function handleNext() {
+    playTone(520, 60, "sine", 0.08);
     if (current + 1 >= questions.length) {
       finishQuiz();
       return;
@@ -174,6 +223,8 @@ export default function QuizMode() {
     setSelected(existing ? existing.chosen : null);
   }
 
+  handleNextRef.current = handleNext;
+
   function handlePrev() {
     if (current <= 0) return;
     const prev = current - 1;
@@ -183,6 +234,10 @@ export default function QuizMode() {
   }
 
   async function finishQuiz() {
+    playTone(400, 150, "sine", 0.15);
+    setTimeout(() => playTone(600, 150, "sine", 0.15), 160);
+    setTimeout(() => playTone(800, 300, "sine", 0.2), 320);
+
     const token = localStorage.getItem("token");
     let storedBest = 0;
     if (token) {
@@ -200,6 +255,7 @@ export default function QuizMode() {
   }
 
   async function handleRestart() {
+    playTone(400, 120, "sine", 0.1);
     setFinished(false);
     setCurrent(0);
     setSelected(null);
@@ -212,13 +268,11 @@ export default function QuizMode() {
     fetchQuestions();
   }
 
-  // ── Derived values ──────────────────────────────────────────────────────────
   const q = questions[current];
   const total = questions.length;
   const pct = total > 0 ? Math.round((score / total) * 100) : 0;
   const progressPct = total > 0 ? ((current + 1) / total) * 100 : 0;
 
-  // ── Loading / Error ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div style={s.page}>
@@ -226,9 +280,7 @@ export default function QuizMode() {
           <div style={s.card}>
             <div style={s.stripe} />
             <div style={s.cardBody}>
-              <p
-                style={{ textAlign: "center", color: "#888780", fontSize: 14 }}
-              >
+              <p style={{ textAlign: "center", color: "#888780", fontSize: 14 }}>
                 Loading questions…
               </p>
             </div>
@@ -267,7 +319,6 @@ export default function QuizMode() {
     );
   }
 
-  // ── Results screen ──────────────────────────────────────────────────────────
   if (finished) {
     return (
       <div style={s.page}>
@@ -275,14 +326,11 @@ export default function QuizMode() {
           <div style={s.card}>
             <div style={s.stripe} />
             <div style={s.cardBody}>
-              {/* Header */}
               <div style={s.resultHeader}>
                 <h2 style={s.resultTitle}>Results</h2>
                 {isNewBest && <span style={s.newBestBadge}>🏆 New best!</span>}
-                
               </div>
 
-              {/* SVG Ring */}
               <div style={{ textAlign: "center", margin: "1.5rem 0" }}>
                 <div
                   style={{
@@ -328,7 +376,6 @@ export default function QuizMode() {
                 </div>
               </div>
 
-              {/* Stat cards */}
               <div style={s.statsGrid}>
                 <div style={s.statCard}>
                   <div style={s.statVal}>{score}</div>
@@ -338,15 +385,12 @@ export default function QuizMode() {
                   <div style={s.statVal}>{total - score}</div>
                   <div style={s.statLabel}>Wrong</div>
                 </div>
-                <div style={s.statCard}>
-                  <div style={{ ...s.statVal, color: "#534AB7" }}>
-                    {bestScore}
-                  </div>
+                <div style={{ ...s.statCard }}>
+                  <div style={{ ...s.statVal, color: "#534AB7" }}>{bestScore}</div>
                   <div style={s.statLabel}>Best score</div>
                 </div>
               </div>
 
-              {/* Answers list — correct answer revealed only here */}
               <div style={{ marginBottom: "1.5rem" }}>
                 <p style={s.sectionLabel}>Question review</p>
                 {answers.map((a, i) => {
@@ -365,9 +409,7 @@ export default function QuizMode() {
                         <div style={s.ansWord}>{a.word}</div>
                         <div style={s.ansDetail}>
                           {a.ok ? (
-                            <span style={{ color: "#0F6E56" }}>
-                              {a.correct}
-                            </span>
+                            <span style={{ color: "#0F6E56" }}>{a.correct}</span>
                           ) : (
                             <>
                               <span
@@ -379,9 +421,7 @@ export default function QuizMode() {
                                 {chosenText}
                               </span>
                               {" → "}
-                              <span style={{ color: "#0F6E56" }}>
-                                {a.correct}
-                              </span>
+                              <span style={{ color: "#0F6E56" }}>{a.correct}</span>
                             </>
                           )}
                         </div>
@@ -391,7 +431,6 @@ export default function QuizMode() {
                 })}
               </div>
 
-              {/* Actions */}
               <div style={s.actionsRow}>
                 <button
                   onClick={handleRestart}
@@ -413,14 +452,12 @@ export default function QuizMode() {
     );
   }
 
-  // ── Quiz screen ─────────────────────────────────────────────────────────────
   return (
     <div style={s.page}>
       <div style={s.container}>
         <div style={s.card}>
           <div style={s.stripe} />
           <div style={s.cardBody}>
-            {/* Header */}
             <div style={s.quizHeader}>
               <button onClick={() => navigate("/dashboard")} style={s.backBtn}>
                 ← Back
@@ -431,12 +468,10 @@ export default function QuizMode() {
               </span>
             </div>
 
-            {/* Progress bar */}
             <div style={s.progressWrap}>
               <div style={{ ...s.progressFill, width: `${progressPct}%` }} />
             </div>
 
-            {/* Best Score Card */}
             <div style={s.bestScoreCard}>
               <span style={s.bestScoreTrophy}>🏆</span>
               <div>
@@ -448,15 +483,12 @@ export default function QuizMode() {
               </div>
             </div>
 
-            {/* Question */}
             <p style={s.questionLabel}>What does this word mean?</p>
             <h3 style={s.questionText}>"{q.word}"</h3>
 
-            {/* Options — no correct/wrong reveal, user can re-select freely */}
             <div style={s.optionsGrid}>
               {q.options.map((opt, i) => {
                 const isSelected = selected === opt;
-
                 return (
                   <button
                     key={opt}
@@ -482,7 +514,6 @@ export default function QuizMode() {
               })}
             </div>
 
-            {/* Next button — visible once any answer selected */}
             {selected && (
               <div style={{ marginTop: "1.25rem" }}>
                 <button
@@ -496,7 +527,6 @@ export default function QuizMode() {
           </div>
         </div>
 
-        {/* Prev question link below card */}
         {current > 0 && (
           <div style={{ marginTop: 10 }}>
             <button onClick={handlePrev} style={s.prevBtn}>
@@ -509,7 +539,6 @@ export default function QuizMode() {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
 const s: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
@@ -521,8 +550,6 @@ const s: Record<string, React.CSSProperties> = {
     maxWidth: 560,
     margin: "0 auto",
   },
-
-  // Card
   card: {
     background: "#fff",
     border: "0.5px solid #D3D1C7",
@@ -536,8 +563,6 @@ const s: Record<string, React.CSSProperties> = {
   cardBody: {
     padding: "1.5rem",
   },
-
-  // Quiz header
   quizHeader: {
     display: "flex",
     alignItems: "center",
@@ -568,8 +593,6 @@ const s: Record<string, React.CSSProperties> = {
     padding: "4px 10px",
     borderRadius: 20,
   },
-
-  // Progress
   progressWrap: {
     height: 5,
     background: "#F1EFE8",
@@ -584,8 +607,6 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: 10,
     transition: "width 0.4s cubic-bezier(.4,0,.2,1)",
   },
-
-  // Best Score Card
   bestScoreCard: {
     display: "flex",
     alignItems: "center",
@@ -619,8 +640,6 @@ const s: Record<string, React.CSSProperties> = {
     fontWeight: 400,
     color: "#888780",
   },
-
-  // Question
   questionLabel: {
     fontSize: 11,
     fontWeight: 500,
@@ -637,8 +656,6 @@ const s: Record<string, React.CSSProperties> = {
     marginBottom: "1.5rem",
     lineHeight: 1.3,
   },
-
-  // Options
   optionsGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
@@ -665,7 +682,6 @@ const s: Record<string, React.CSSProperties> = {
     borderColor: "#7F77DD",
     color: "#3C3489",
   },
-  // Kept for results screen — unused during active quiz
   optionCorrect: {
     background: "#E1F5EE",
     borderColor: "#1D9E75",
@@ -676,8 +692,6 @@ const s: Record<string, React.CSSProperties> = {
     borderColor: "#E24B4A",
     color: "#791F1F",
   },
-
-  // Letter badge
   optLetter: {
     width: 22,
     height: 22,
@@ -704,12 +718,10 @@ const s: Record<string, React.CSSProperties> = {
     color: "#fff",
   },
   optLetterWrong: {
-    background: "#E24B4A",
+    background: "#E24B4B",
     borderColor: "#E24B4A",
     color: "#fff",
   },
-
-  // Buttons
   btn: {
     width: "100%",
     padding: "0.75rem 1rem",
@@ -730,8 +742,6 @@ const s: Record<string, React.CSSProperties> = {
     color: "#2C2C2A",
     border: "0.5px solid #D3D1C7",
   },
-
-  // Prev button
   prevBtn: {
     background: "none",
     border: "none",
@@ -746,8 +756,6 @@ const s: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 4,
   },
-
-  // Results
   resultHeader: {
     display: "flex",
     alignItems: "center",
@@ -791,8 +799,6 @@ const s: Record<string, React.CSSProperties> = {
     color: "#888780",
     marginTop: 2,
   },
-
-  // Stat cards
   statsGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr 1fr",
@@ -816,8 +822,6 @@ const s: Record<string, React.CSSProperties> = {
     color: "#888780",
     marginTop: 2,
   },
-
-  // Answers
   sectionLabel: {
     fontSize: 11,
     fontWeight: 500,
