@@ -141,7 +141,18 @@ export default function Dashboard() {
             <h1 style={styles.heroName}>{me?.username}</h1>
             <p style={styles.heroSub}>User ID #{me?.user_id}</p>
           </div>
-          <span style={styles.badgeTeal}>⭐ Top player</span>
+          {leaderboard?.rank === 1 && (
+            <span style={styles.badgeTeal}>⭐ Top player</span>
+          )}
+          {leaderboard?.rank === 2 && (
+            <span style={styles.badgeSilver}>🥈 Runner-up</span>
+          )}
+          {leaderboard?.rank === 3 && (
+            <span style={styles.badgeBronze}>🥉 Third place</span>
+          )}
+          {leaderboard && leaderboard.rank > 3 && leaderboard.rank <= 5 && (
+            <span style={styles.badgeCoral}>🔥 Rising star</span>
+          )}
         </div>
 
         {/* ── Stat cards ── */}
@@ -514,6 +525,42 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 20,
     background: "#EEEDFE",
     color: "#3C3489",
+    whiteSpace: "nowrap",
+  },
+  badgeSilver: {
+    display: "inline-flex",
+    alignItems: "center",
+    fontSize: 12,
+    fontWeight: 500,
+    padding: "4px 10px",
+    borderRadius: 20,
+    background: "#F0F1F2",
+    color: "#555",
+    border: "0.5px solid #CCC",
+    whiteSpace: "nowrap",
+  },
+  badgeBronze: {
+    display: "inline-flex",
+    alignItems: "center",
+    fontSize: 12,
+    fontWeight: 500,
+    padding: "4px 10px",
+    borderRadius: 20,
+    background: "#FAECE7",
+    color: "#993C1D",
+    border: "0.5px solid #F0997B",
+    whiteSpace: "nowrap",
+  },
+  badgeCoral: {
+    display: "inline-flex",
+    alignItems: "center",
+    fontSize: 12,
+    fontWeight: 500,
+    padding: "4px 10px",
+    borderRadius: 20,
+    background: "#FDE8EF",
+    color: "#A32D6E",
+    border: "0.5px solid #F4A0C4",
     whiteSpace: "nowrap",
   },
 
