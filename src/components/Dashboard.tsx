@@ -240,7 +240,7 @@ export default function Dashboard() {
             <div>
               <h2 style={styles.cardTitle}>Choose a level</h2>
               <p style={styles.cardSub}>
-                Unlock higher levels by scoring 50 points for every each level
+                Unlock higher levels by scoring 50 points for each level
               </p>
             </div>
             <span style={styles.badgePurple}>
@@ -558,6 +558,8 @@ export default function Dashboard() {
                 </button>
               </div>
         </div>
+
+        <p style={styles.betaText}>This is a beta version — some features may still be under development.</p>
 
         <CreateAccountModal
           open={createAccountOpen}
@@ -942,4 +944,5 @@ const styles: Record<string, React.CSSProperties> = {
 
   /* Error */
   errorText: { color: "#A32D2D", fontSize: 13, marginTop: 8 },
+  betaText: { color: "#888780", fontSize: 13, fontStyle: "italic", margin: "12px 0 0" },
 };

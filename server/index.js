@@ -185,7 +185,7 @@ app.get('/api/leaderboard', requireAuth, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
     const [allTotals] = await pool.query(
-      `SELECT ls.user_id, u.username, SUM(ls.best_score) as total FROM level_scores ls JOIN \`user\` u ON ls.user_id = u.user_id GROUP BY ls.user_id, u.username ORDER BY total DESC LIMIT ?`,
+      `SELECT u.user_id, u.username, COALESCE(SUM(ls.best_score), 0) as total FROM \`user\` u LEFT JOIN level_scores ls ON u.user_id = ls.user_id GROUP BY u.user_id, u.username ORDER BY total DESC LIMIT ?`,
       [limit]
     );
     const ranked = allTotals.map((r, idx) => ({
