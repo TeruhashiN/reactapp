@@ -96,11 +96,10 @@ app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
 
     const myScore = await getTotalScore(currentUserId);
 
-    const [rankRows] = await pool.query(
-      `SELECT COUNT(*) AS higher FROM \`${table}\` WHERE score > ?`,
-      [myScore]
+    const [allTotals] = await pool.query(
+      `SELECT user_id, SUM(best_score) as total FROM level_scores GROUP BY user_id`
     );
-    const higher = Number(rankRows[0]?.higher ?? 0);
+    const higher = allTotals.filter((r) => Number(r.total) > myScore).length;
     const rank = higher + 1;
 
     return res.json({ totalUsers, rank });

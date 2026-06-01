@@ -49,6 +49,8 @@ async function setLevelScore(userId, level, score) {
      ON DUPLICATE KEY UPDATE best_score = GREATEST(best_score, VALUES(best_score))`,
     [userId, level, score]
   );
+  const total = await getTotalScore(userId);
+  await pool.query(`UPDATE \`${TABLE()}\` SET score = ? WHERE user_id = ?`, [total, userId]);
 }
 
 async function getTotalScore(userId) {
