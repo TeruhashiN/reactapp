@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+type DictionaryItem = {
+  english: string;
+  meaning: string;
+  chinese: string;
+};
+
 const STYLE_ID = "dictionary-mobile-filter-styles";
 
 export default function Dictionary() {
@@ -413,41 +419,6 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     color: "#1a1625",
     letterSpacing: "-0.01em",
-  },
-  filterToggleBtn: {
-    alignSelf: "flex-start",
-    background: "#fff",
-    border: "0.5px solid #D3D1C7",
-    borderRadius: 10,
-    padding: "7px 12px",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#3C3489",
-    cursor: "pointer",
-    marginBottom: 8,
-    display: "inline-flex",
-  },
-  subtitle: {
-    color: "#7a756a",
-    marginTop: 6,
-    marginBottom: 0,
-    fontSize: 13,
-    fontWeight: 500,
-  },
-  backBtn: {
-    border: "0.5px solid #D3D1C7",
-    background: "#fff",
-    padding: "9px 14px",
-    borderRadius: 10,
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#3C3489",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 7,
-    whiteSpace: "nowrap",
-    transition: "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
   },
   searchWrap: {
     position: "relative",

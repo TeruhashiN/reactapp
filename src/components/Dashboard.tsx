@@ -303,66 +303,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* ── English level ── */}
-        <div style={styles.card}>
-          <h2 style={styles.cardTitle}>English level</h2>
-          <p style={styles.cardSub}>Pick a difficulty to practise</p>
-          <div style={styles.sectionGrid}>
-            {[
-              { label: "🌱 Beginner", cls: "teal" },
-              { label: "🌿 Intermediate", cls: "purple" },
-              { label: "🚀 Advanced", cls: "coral", full: true },
-            ].map((b) => (
-              <button
-                key={b.label}
-                onClick={() => alert(`${b.label} English section coming soon!`)}
-                style={{
-                  ...styles.secBtn,
-                  ...(b.cls === "teal"
-                    ? styles.secBtnTeal
-                    : b.cls === "purple"
-                      ? styles.secBtnPurple
-                      : styles.secBtnCoral),
-                  ...(b.full ? { gridColumn: "1 / -1" } : {}),
-                }}
-              >
-                {b.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Reading section ── */}
-        <div style={styles.card}>
-          <h2 style={styles.cardTitle}>Reading section</h2>
-          <p style={styles.cardSub}>
-            Choose an exercise to improve comprehension
-          </p>
-          <div style={styles.sectionGrid}>
-            {[
-              { label: "📄 Short passages", cls: "teal" },
-              { label: "📚 Long articles", cls: "purple" },
-              { label: "✏️ Comprehension quiz", cls: "coral", full: true },
-            ].map((b) => (
-              <button
-                key={b.label}
-                onClick={() => alert(`${b.label} reading section coming soon!`)}
-                style={{
-                  ...styles.secBtn,
-                  ...(b.cls === "teal"
-                    ? styles.secBtnTeal
-                    : b.cls === "purple"
-                      ? styles.secBtnPurple
-                      : styles.secBtnCoral),
-                  ...(b.full ? { gridColumn: "1 / -1" } : {}),
-                }}
-              >
-                {b.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* ── Progress + Details ── */}
         <div style={styles.bottomGrid}>
           <div style={styles.card}>
