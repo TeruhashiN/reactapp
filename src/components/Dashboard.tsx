@@ -209,7 +209,7 @@ export default function Dashboard() {
             <span style={styles.badgeCoral}>🔥 Rising star</span>
           )}
         </div>
-
+        
         {/* ── Stat cards ── */}
         <div style={styles.statGrid}>
           {[
@@ -218,7 +218,6 @@ export default function Dashboard() {
               value: `L${derived.level}`,
               sub: "of 20 total",
               color: "#3C3489",
-              bg: "#EEEDFE",
               icon: "🏆",
             },
             {
@@ -226,7 +225,6 @@ export default function Dashboard() {
               value: derived.score,
               sub: "personal best",
               color: "#085041",
-              bg: "#E1F5EE",
               icon: "📊",
             },
             {
@@ -234,7 +232,6 @@ export default function Dashboard() {
               value: derived.englishCount,
               sub: "total English words",
               color: "#712B13",
-              bg: "#FAECE7",
               icon: "📚",
             },
             {
@@ -244,7 +241,6 @@ export default function Dashboard() {
                 ? `of ${leaderboard.totalUsers} users`
                 : "global standing",
               color: "#0C447C",
-              bg: "#E6F1FB",
               icon: "🥇",
             },
           ].map((s) => (
@@ -560,6 +556,16 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <div style={styles.quoteBar}>
+          <div style={styles.quoteCh}>
+            学英语就像记单词：先记最基础的，再慢慢变强。
+          </div>
+          <div style={styles.quoteEn}>
+            Learning English starts by remembering the basic terms—then you grow
+            step by step.
+          </div>
+        </div>
+
         {/* ── Ranking ── */}
         <div style={styles.card}>
           <div style={styles.cardHeader}>
@@ -852,6 +858,27 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: "#B4B2A9",
     marginTop: 2,
+  },
+
+  /* Chinese quote bar */
+  quoteBar: {
+    margin: "-2px 0 14px",
+    padding: "0.95rem 1rem",
+    background: "#EEEDFE",
+    border: "0.5px solid #AFA9EC",
+    borderRadius: 10,
+  },
+  quoteCh: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#3C3489",
+    lineHeight: 1.4,
+  },
+  quoteEn: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#888780",
+    lineHeight: 1.35,
   },
 
   /* Card */
