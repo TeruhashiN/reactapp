@@ -9,7 +9,6 @@ type QuizQuestion = {
 };
 
 const OPTION_LETTERS = ["A", "B", "C", "D"] as const;
-const QUESTION_COUNT_OPTIONS = [10, 20, 50, 100];
 const TIME_OPTIONS = [
   { value: 0, label: "No timer" },
   { value: 60, label: "1 minute" },
@@ -17,6 +16,15 @@ const TIME_OPTIONS = [
   { value: 600, label: "10 minutes" },
 ];
 const PLAYER_OPTIONS = [2, 3, 4];
+
+const getQuestionCountOptions = (numPlayers: number): number[] => {
+  switch (numPlayers) {
+    case 2: return [10, 20, 50, 100];
+    case 3: return [15, 30, 60, 120];
+    case 4: return [20, 40, 120, 200];
+    default: return [10, 20, 50, 100];
+  }
+};
 
 interface CustomWindow extends Window {
   AudioContext: typeof AudioContext;
@@ -97,10 +105,21 @@ export default function LocalMultiplayer() {
     }
   }, [setup.questionCount, setup.numPlayers, setup.timeLimit]);
 
-  useEffect(() => {
-    if (!gameStarted) return;
-    fetchQuestions();
-  }, [fetchQuestions, gameStarted]);
+   useEffect(() => {
+     if (!gameStarted) return;
+     fetchQuestions();
+   }, [fetchQuestions, gameStarted]);
+
+   // Reset questionCount to first valid option when numPlayers changes
+   useEffect(() => {
+     const validOptions = getQuestionCountOptions(setup.numPlayers);
+     if (!validOptions.includes(setup.questionCount)) {
+       setSetup(prev => ({
+         ...prev,
+         questionCount: validOptions[0]
+       }));
+     }
+   }, [setup.numPlayers]);
 
   useEffect(() => {
     if (setup.timeLimit <= 0 || finished) return;
@@ -211,30 +230,30 @@ export default function LocalMultiplayer() {
             </div>
           </div>
 
-          <div style={s.card}>
-            <h3 style={{ ...s.cardTitle, marginBottom: 4 }}>2. Number of Questions</h3>
-            <p style={{ ...s.cardSub, marginBottom: 12 }}>
-              Choose how many questions you want to play
-            </p>
-            <div style={countGridStyle}>
-              {QUESTION_COUNT_OPTIONS.map((n) => {
-                const isActive = setup.questionCount === n;
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setSetup({ ...setup, questionCount: n })}
-                    style={{
-                      ...countBtn,
-                      ...(isActive ? countBtnActive : countBtnDefault),
-                    }}
-                  >
-                    {n}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+           <div style={s.card}>
+             <h3 style={{ ...s.cardTitle, marginBottom: 4 }}>2. Number of Questions</h3>
+             <p style={{ ...s.cardSub, marginBottom: 12 }}>
+               Choose how many questions you want to play
+             </p>
+             <div style={countGridStyle}>
+               {getQuestionCountOptions(setup.numPlayers).map((n) => {
+                 const isActive = setup.questionCount === n;
+                 return (
+                   <button
+                     key={n}
+                     type="button"
+                     onClick={() => setSetup({ ...setup, questionCount: n })}
+                     style={{
+                       ...countBtn,
+                       ...(isActive ? countBtnActive : countBtnDefault),
+                     }}
+                   >
+                     {n}
+                   </button>
+                 );
+               })}
+             </div>
+           </div>
 
           <div style={s.card}>
             <h3 style={{ ...s.cardTitle, marginBottom: 4 }}>3. Time Limit</h3>
