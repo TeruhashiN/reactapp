@@ -267,6 +267,72 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ── Timer Quiz ── */}
+        <div style={styles.card}>
+          <button
+            type="button"
+            onClick={() => navigate("/timer-quiz?level=1")}
+            style={{
+              width: "100%",
+              border: "0.5px solid #D3D1C7",
+              background: "#E1F5EE",
+              padding: "0.95rem 1rem",
+              borderRadius: 10,
+              cursor: "pointer",
+              textAlign: "left",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              transition:
+                "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
+            }}
+            aria-label="Start timer quiz"
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                "0 8px 18px rgba(13, 110, 86, 0.12)";
+              (e.currentTarget as HTMLButtonElement).style.transform =
+                "translateY(-1px)";
+              (e.currentTarget as HTMLButtonElement).style.background =
+                "#C8E8DC";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+              (e.currentTarget as HTMLButtonElement).style.transform =
+                "translateY(0)";
+              (e.currentTarget as HTMLButtonElement).style.background =
+                "#E1F5EE";
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <h2 style={{ ...styles.cardTitle, margin: 0, fontSize: 16 }}>
+                ⏱️ Timer Quiz
+              </h2>
+              <p style={{ ...styles.cardSub, margin: 0 }}>
+                Answer as many questions as you can before time runs out
+              </p>
+            </div>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "#fff",
+                border: "0.5px solid #5DCAA5",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+                flexShrink: 0,
+                color: "#085041",
+              }}
+            >
+              ⏰
+            </span>
+          </button>
+        </div>
+
         {/* ── Dictionary ── */}
         <div style={styles.card}>
           <button

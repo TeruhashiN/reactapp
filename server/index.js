@@ -236,6 +236,51 @@ app.get('/api/dictionary/english', async (req, res) => {
   }
 });
 
+app.get('/api/timer-quiz/questions', async (req, res) => {
+  try {
+    const count = Math.min(parseInt(req.query.count || '20', 10), 100);
+
+    if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {
+      return res.status(500).json({ message: 'Database not configured.' });
+    }
+
+    const table = 'english';
+
+    const [columns] = await pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
+      [process.env.DB_NAME, table]
+    );
+    const colNames = columns.map((c) => c.COLUMN_NAME);
+    const englishCol = colNames.includes('english') ? 'english' : 'words';
+
+    const [rows] = await pool.query(
+      `SELECT \`${englishCol}\` AS word, meaning FROM \`${table}\` WHERE meaning IS NOT NULL AND meaning != '' ORDER BY RAND() LIMIT ?`,
+      [count]
+    );
+
+    const allMeanings = await pool.query(
+      `SELECT meaning FROM \`${table}\` WHERE meaning IS NOT NULL AND meaning != ''`
+    );
+    const allMeaningValues = allMeanings[0].map((r) => r.meaning);
+
+    const questions = rows.map((q) => {
+      const distractors = shuffle(allMeaningValues.filter(m => m !== q.meaning)).slice(0, 3);
+      const options = shuffle([...distractors, q.meaning]);
+      return {
+        id: q.id,
+        word: q.word,
+        options: options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt}`),
+        answer: q.meaning,
+      };
+    });
+
+    return res.json({ questions });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err?.message });
+  }
+});
+
 function shuffle(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
