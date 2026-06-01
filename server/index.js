@@ -109,6 +109,26 @@ app.get('/api/leaderboard/me', requireAuth, async (req, res) => {
   }
 });
 
+app.get('/api/leaderboard', requireAuth, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+    const [allTotals] = await pool.query(
+      `SELECT ls.user_id, u.username, SUM(ls.best_score) as total FROM level_scores ls JOIN \`user\` u ON ls.user_id = u.user_id GROUP BY ls.user_id, u.username ORDER BY total DESC LIMIT ?`,
+      [limit]
+    );
+    const ranked = allTotals.map((r, idx) => ({
+      rank: idx + 1,
+      user_id: Number(r.user_id),
+      username: r.username,
+      score: Number(r.total),
+    }));
+    return res.json({ users: ranked });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 app.get('/api/dictionary/english', async (req, res) => {
   try {
     if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {

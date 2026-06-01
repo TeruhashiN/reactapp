@@ -58,6 +58,11 @@ export default function Dashboard() {
     totalUsers: number;
     rank: number;
   } | null>(null);
+  const [rankingUsers, setRankingUsers] = useState<
+    { rank: number; username: string; score: number; user_id: number }[]
+  >([]);
+  const [showRanking, setShowRanking] = useState(false);
+  const [rankingLoading, setRankingLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -100,6 +105,27 @@ export default function Dashboard() {
     };
     run();
   }, []);
+
+  const fetchRanking = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setRankingLoading(true);
+    try {
+      const res = await fetch("http://localhost:4000/api/leaderboard?limit=20", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+      const data: { users: { rank: number; username: string; score: number; user_id: number }[] } =
+        await res.json();
+      setRankingUsers(data.users);
+      setShowRanking(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load ranking");
+    } finally {
+      setRankingLoading(false);
+    }
+  };
 
   const derived = useMemo(() => {
     const score = me?.score ?? 0;
@@ -349,6 +375,86 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* ── Ranking ── */}
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <div>
+              <h2 style={styles.cardTitle}>Ranking</h2>
+              <p style={styles.cardSub}>Global leaderboard by total score</p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchRanking}
+              disabled={rankingLoading}
+              style={{
+                ...styles.rankBtn,
+                opacity: rankingLoading ? 0.7 : 1,
+              }}
+            >
+              {rankingLoading ? "Loading…" : showRanking ? "Refresh" : "View Ranking"}
+            </button>
+          </div>
+          {showRanking && (
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>RANK</th>
+                    <th style={styles.th}>USER</th>
+                    <th style={styles.th}>SCORE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankingUsers.map((u) => {
+                    const isMe = me?.user_id === u.user_id;
+                    return (
+                      <tr
+                        key={u.user_id}
+                        style={{
+                          backgroundColor: isMe ? "#EEEDFE" : "transparent",
+                        }}
+                      >
+                        <td
+                          style={{
+                            ...styles.td,
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {u.rank === 1 && "🥇"}
+                          {u.rank === 2 && "🥈"}
+                          {u.rank === 3 && "🥉"}
+                          {u.rank > 3 && `#${u.rank}`}
+                        </td>
+                        <td
+                          style={{
+                            ...styles.td,
+                            fontWeight: isMe ? 600 : 400,
+                            color: isMe ? "#3C3489" : "#2C2C2A",
+                          }}
+                        >
+                          {u.username}
+                          {isMe ? " (you)" : ""}
+                        </td>
+                        <td style={{ ...styles.td, fontWeight: 500 }}>
+                          {u.score}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {rankingUsers.length === 0 && (
+                    <tr>
+                      <td style={styles.td} colSpan={3}>
+                        No rankings yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* ── Options ── */}
@@ -626,6 +732,17 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#FAECE7",
     color: "#993C1D",
     borderColor: "#F0997B",
+  },
+  rankBtn: {
+    border: "0.5px solid #3C3489",
+    borderRadius: 8,
+    padding: "0.55rem 1rem",
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer",
+    background: "#EEEDFE",
+    color: "#3C3489",
+    transition: "background 0.15s, transform 0.1s",
   },
 
   /* Bottom grid */
