@@ -5,7 +5,7 @@ function env(string $key, ?string $default = null): ?string {
     static $loaded = false;
     static $map = [];
     if (!$loaded) {
-        $path = dirname(__DIR__) . '/.env';
+        $path = __DIR__ . '/.env';
         if (is_file($path)) {
             $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             if (is_array($lines)) {

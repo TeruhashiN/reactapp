@@ -20,7 +20,6 @@ require_once __DIR__ . '/db.php';
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS');
-create_tables($pdo);
 
 if ($method === 'OPTIONS') {
     http_response_code(204);
@@ -29,6 +28,7 @@ if ($method === 'OPTIONS') {
 
 try {
     $pdo = db_connect();
+    create_tables($pdo);
 
     $router = [
         ['GET', '/health', fn() => json_out(['ok' => true])],
