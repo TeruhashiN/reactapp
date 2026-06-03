@@ -917,33 +917,33 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
   },
 
-  /* Level grid */
-  levelGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
-    gap: 8,
-    marginTop: 12,
-  },
-  lvlBtn: {
-    borderRadius: 8,
-    padding: "0.55rem 0.35rem",
-    fontSize: 13,
-    fontWeight: 500,
-    cursor: "pointer",
-    border: "0.5px solid",
-    transition: "background 0.15s, transform 0.1s",
-    lineHeight: 1,
-  },
-  lvlBtnCurrent: {
-    background: "#EEEDFE",
-    color: "#3C3489",
-    borderColor: "#AFA9EC",
-  },
-  lvlBtnUnlocked: {
-    background: "#fff",
-    color: "#444441",
-    borderColor: "#B4B2A9",
-  },
+   /* Level grid */
+   levelGrid: {
+     display: "grid",
+     gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))",
+     gap: 12,
+     marginTop: 12,
+   },
+   lvlBtn: {
+     borderRadius: 10,
+     padding: "0.75rem 0.5rem",
+     fontSize: 15,
+     fontWeight: 600,
+     cursor: "pointer",
+     border: "1px solid",
+     transition: "background 0.15s, transform 0.1s",
+     lineHeight: 1,
+   },
+   lvlBtnCurrent: {
+     background: "#EEEDFE",
+     color: "#3C3489",
+     borderColor: "#AFA9EC",
+   },
+   lvlBtnUnlocked: {
+     background: "#fff",
+     color: "#444441",
+     borderColor: "#B4B2A9",
+   },
 
   /* Section buttons */
   sectionGrid: {
