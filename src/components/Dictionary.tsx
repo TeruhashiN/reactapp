@@ -17,15 +17,9 @@ export default function Dictionary() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(window.innerWidth < 768);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showFilters, setShowFilters] = useState(false);
   const PER_PAGE = 10;
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const [jumpPage, setJumpPage] = useState("");
 
   useEffect(() => {
     const run = async () => {
@@ -164,18 +158,16 @@ export default function Dictionary() {
             </button>
           </div>
 
-          {isMobile && (
-            <button
-              type="button"
-              onClick={() => setShowFilters((prev) => !prev)}
-              style={styles.filterToggleBtn}
-              aria-expanded={showFilters}
-            >
-              {showFilters ? "Hide filters" : "Show filters"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowFilters((prev) => !prev)}
+            style={styles.filterToggleBtn}
+            aria-expanded={showFilters}
+          >
+            {showFilters ? "Hide filters" : "Show filters"}
+          </button>
 
-          {(showFilters || !isMobile) && (
+          {showFilters && (
             <>
               {/* Search */}
               <div style={styles.searchWrap}>
@@ -241,7 +233,7 @@ export default function Dictionary() {
         </div>
       </div>
 
-      {/* Scrollable table + pagination */}
+      {/* Scrollable table */}
       <div style={styles.tableArea}>
         <div style={styles.content}>
           {loading ? (
@@ -250,7 +242,7 @@ export default function Dictionary() {
               <p style={styles.stateText}>Loading dictionary…</p>
             </div>
           ) : error ? (
-            <div style={styles.errorWrap}>
+            <div style={styles.stateWrap}>
               <div style={styles.errorIcon}>!</div>
               <div>
                 <p style={styles.errorTitle}>Could not load dictionary</p>
@@ -279,105 +271,130 @@ export default function Dictionary() {
               )}
             </div>
           ) : (
-            <>
-              <div style={styles.tableCard}>
-                <table style={styles.table}>
-                  <colgroup>
-                    <col style={{ width: "20%" }} />
-                    <col style={{ width: "55%" }} />
-                    <col style={{ width: "25%" }} />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>English</th>
-                      <th style={styles.th}>Meaning</th>
-                      <th style={{ ...styles.th, textAlign: "center" }}>Chinese</th>
+            <div style={styles.tableCard}>
+              <table style={styles.table}>
+                <colgroup>
+                  <col style={{ width: "20%" }} />
+                  <col style={{ width: "55%" }} />
+                  <col style={{ width: "25%" }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>English</th>
+                    <th style={styles.th}>Meaning</th>
+                    <th style={{ ...styles.th, textAlign: "center" }}>Chinese</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageData.map((row, idx) => (
+                    <tr
+                      key={`${row.english}-${idx}`}
+                      style={styles.tr}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLTableRowElement).style.background = "#fafaf8";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLTableRowElement).style.background = "#fff";
+                      }}
+                    >
+                      <td style={styles.td}>
+                        <span style={styles.word}>{row.english}</span>
+                      </td>
+                      <td style={{ ...styles.td, ...styles.meaningCell }}>
+                        {row.meaning}
+                      </td>
+                      <td style={{ ...styles.td, textAlign: "center", whiteSpace: "nowrap" }}>
+                        <span style={styles.chinese}>{row.chinese}</span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {pageData.map((row, idx) => (
-                      <tr
-                        key={`${row.english}-${idx}`}
-                        style={styles.tr}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLTableRowElement).style.background = "#fafaf8";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLTableRowElement).style.background = "#fff";
-                        }}
-                      >
-                        <td style={styles.td}>
-                          <span style={styles.word}>{row.english}</span>
-                        </td>
-                        <td style={{ ...styles.td, ...styles.meaningCell }}>
-                          {row.meaning}
-                        </td>
-                        <td style={{ ...styles.td, textAlign: "center", whiteSpace: "nowrap" }}>
-                          <span style={styles.chinese}>{row.chinese}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div style={styles.paginationWrap}>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    style={
-                      currentPage === 1
-                        ? { ...styles.pageBtn, opacity: 0.35, cursor: "not-allowed" }
-                        : styles.pageBtn
-                    }
-                  >
-                    ← Prev
-                  </button>
-
-                  <div style={styles.pageNumbers}>
-                    {getPageNumbers().map((page, idx) => {
-                      const isCurrent = page === currentPage;
-                      if (page === "...") {
-                        return (
-                          <span key={`ellipsis-${idx}`} style={styles.ellipsis}>
-                            …
-                          </span>
-                        );
-                      }
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page as number)}
-                          style={isCurrent ? styles.pageNumActive : styles.pageNum}
-                          aria-current={isCurrent ? "page" : undefined}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    style={
-                      currentPage === totalPages
-                        ? { ...styles.pageBtn, opacity: 0.35, cursor: "not-allowed" }
-                        : styles.pageBtn
-                    }
-                  >
-                    Next →
-                  </button>
-                </div>
-              )}
-            </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Fixed pagination */}
+      {totalPages > 1 && (
+        <div style={styles.paginationFixed}>
+          <div style={styles.paginationInner}>
+            <div style={styles.paginationWrap}>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                style={
+                  currentPage === 1
+                    ? { ...styles.pageBtn, opacity: 0.35, cursor: "not-allowed" }
+                    : styles.pageBtn
+                }
+              >
+                ← Prev
+              </button>
+
+              <div style={styles.pageNumbers}>
+                {getPageNumbers().map((page, idx) => {
+                  const isCurrent = page === currentPage;
+                  if (page === "...") {
+                    return (
+                      <span key={`ellipsis-${idx}`} style={styles.ellipsis}>
+                        …
+                      </span>
+                    );
+                  }
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page as number)}
+                      style={isCurrent ? styles.pageNumActive : styles.pageNum}
+                      aria-current={isCurrent ? "page" : undefined}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                style={
+                  currentPage === totalPages
+                    ? { ...styles.pageBtn, opacity: 0.35, cursor: "not-allowed" }
+                    : styles.pageBtn
+                }
+              >
+                Next →
+              </button>
+            </div>
+
+            <div style={styles.jumpWrap}>
+              <span style={styles.jumpLabel}>Jump to:</span>
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={jumpPage}
+                onChange={(e) => setJumpPage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const page = parseInt(jumpPage, 10);
+                    if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                      setCurrentPage(page);
+                      setJumpPage("");
+                    }
+                  }
+                }}
+                style={styles.jumpInput}
+                aria-label="Jump to page"
+              />
+              <span style={styles.jumpTotal}>of {totalPages}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -413,12 +430,41 @@ const styles: Record<string, React.CSSProperties> = {
     flexWrap: "wrap",
     marginBottom: 18,
   },
+  backBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "8px 12px",
+    background: "#fff",
+    border: "1px solid #e5e2da",
+    borderRadius: 10,
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#3C3489",
+    cursor: "pointer",
+  },
+  filterToggleBtn: {
+    padding: "8px 12px",
+    background: "#fff",
+    border: "1px solid #D3D1C7",
+    borderRadius: 10,
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#3C3489",
+    cursor: "pointer",
+    marginBottom: 12,
+  },
   title: {
     fontSize: 22,
     fontWeight: 700,
     margin: 0,
     color: "#1a1625",
     letterSpacing: "-0.01em",
+  },
+  subtitle: {
+    fontSize: 13,
+    color: "#7a756a",
+    margin: "4px 0 0",
   },
   searchWrap: {
     position: "relative",
@@ -548,8 +594,8 @@ const styles: Record<string, React.CSSProperties> = {
   tableArea: {
     flex: 1,
     overflowY: "auto",
-    padding: "20px 16px 40px",
-    background: "linear-gradient(180deg, #f5f4f0 0%, #ece9e3 100%)",
+    padding: "20px 16px 0",
+    background: "#f5f4f0",
   },
   content: {
     maxWidth: 960,
@@ -744,6 +790,42 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     fontSize: 14,
     fontWeight: 600,
+    color: "#5a554c",
+  },
+  paginationFixed: {
+    flexShrink: 0,
+    background: "#fff",
+    borderTop: "0.5px solid #e5e2da",
+    padding: "14px 16px",
+    boxShadow: "0 -2px 8px rgba(60, 52, 137, 0.04)",
+  },
+  paginationInner: {
+    maxWidth: 960,
+    margin: "0 auto",
+  },
+  jumpWrap: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 10,
+  },
+  jumpLabel: {
+    fontSize: 13,
+    color: "#7a756a",
+    fontWeight: 500,
+  },
+  jumpInput: {
+    width: 56,
+    padding: "4px 8px",
+    border: "1px solid #e5e2da",
+    borderRadius: 6,
+    fontSize: 13,
+    textAlign: "center" as const,
+    outline: "none",
+  },
+  jumpTotal: {
+    fontSize: 13,
     color: "#5a554c",
   },
 };
