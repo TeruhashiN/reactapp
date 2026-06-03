@@ -8,11 +8,7 @@ type Question = {
   answer: string;
 };
 
-const API_BASE =
-  typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.host}`
-    : "http://localhost:4000";
-const API = `${API_BASE}/api`;
+const API = "/api";
 const COUNT_OPTIONS = [5, 10, 20] as const;
 
 const STORAGE_KEY = "__multiplayer_battle_state";

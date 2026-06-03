@@ -33,7 +33,7 @@ export default function CreateAccountModal({ open, onClose }: { open: boolean; o
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:4000/api/admin/create-user", {
+      const res = await fetch("/api/admin/create-user", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

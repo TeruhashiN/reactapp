@@ -39,7 +39,7 @@ async function fetchBestForLevel(level: number): Promise<number> {
   try {
     const token = localStorage.getItem("token");
     if (!token) return 0;
-    const res = await fetch(`http://localhost:4000/api/me/scores?level=${level}`, {
+    const res = await fetch(`/api/me/scores?level=${level}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return 0;
@@ -57,7 +57,7 @@ async function saveLevelScore(
   score: number,
 ): Promise<{ ok: boolean; total: number }> {
   try {
-    const res = await fetch(`http://localhost:4000/api/me/level-score`, {
+    const res = await fetch(`/api/me/level-score`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -98,13 +98,13 @@ export default function QuizMode() {
   const handleSelectRef = useRef<(opt: string) => void>(() => {});
   const handleNextRef = useRef<() => void>(() => {});
 
-  const fetchQuestions = useCallback(async () => {
+   const fetchQuestions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-const res = await fetch(
-         `http://localhost:4000/api/quiz/questions?level=${level}&limit=25`,
-       );
+      const res = await fetch(
+        `/api/quiz/questions?level=${level}&limit=25`,
+      );
       if (!res.ok) throw new Error("Failed to fetch questions");
       const data = await res.json();
       setQuestions(data.questions || []);

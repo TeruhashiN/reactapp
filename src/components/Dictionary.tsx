@@ -33,7 +33,7 @@ export default function Dictionary() {
         setLoading(true);
         setError(null);
         setCurrentPage(1);
-        const res = await fetch("http://localhost:4000/api/dictionary/english");
+        const res = await fetch("/api/dictionary/english");
         if (!res.ok) {
           const msg = await res.text();
           throw new Error(msg || `Request failed: ${res.status}`);

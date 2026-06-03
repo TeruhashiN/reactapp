@@ -66,7 +66,7 @@ export default function TimerQuiz() {
     setQuestions([]);
     try {
       const res = await fetch(
-        `http://localhost:4000/api/timer-quiz/questions?count=${questionCount}`
+        `/api/timer-quiz/questions?count=${questionCount}`
       );
       if (!res.ok) throw new Error("Failed to fetch questions");
       const data = await res.json();

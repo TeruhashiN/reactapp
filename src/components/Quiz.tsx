@@ -114,7 +114,7 @@ export default function Quiz() {
       setLoggedIn(false);
       const errorMessage = e instanceof Error ? e.message : "Invalid username or password.";
       if (e instanceof TypeError && errorMessage === "Failed to fetch") {
-        setLoginError("Unable to connect to server. Please ensure the backend is running on port 4000.");
+        setLoginError("Unable to connect to server. Please try again later.");
       } else {
         setLoginError(errorMessage);
       }

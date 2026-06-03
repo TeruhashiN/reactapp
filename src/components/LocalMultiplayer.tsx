@@ -99,7 +99,7 @@ export default function LocalMultiplayer() {
     setQuestions([]);
     try {
       const res = await fetch(
-        `http://localhost:4000/api/timer-quiz/questions?count=${setup.questionCount}`,
+        `/api/timer-quiz/questions?count=${setup.questionCount}`,
       );
       if (!res.ok) throw new Error("Failed to fetch questions");
       const data = await res.json();

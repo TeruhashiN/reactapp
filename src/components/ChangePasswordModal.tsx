@@ -50,7 +50,7 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }: ModalP
         setSubmitting(false);
         return;
       }
-      const res = await fetch("http://localhost:4000/api/me/change-password", {
+      const res = await fetch("/api/me/change-password", {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,

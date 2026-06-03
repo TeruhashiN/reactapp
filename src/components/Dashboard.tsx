@@ -78,7 +78,7 @@ export default function Dashboard() {
     }
     const run = async () => {
       try {
-        const res = await fetch("http://localhost:4000/api/me", {
+        const res = await fetch("/api/me", {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -89,7 +89,7 @@ export default function Dashboard() {
         const data: MeResponse = await res.json();
         setMe(data.user);
 
-        const lbRes = await fetch("http://localhost:4000/api/leaderboard/me", {
+        const lbRes = await fetch("/api/leaderboard/me", {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -116,7 +116,7 @@ export default function Dashboard() {
     setRankingLoading(true);
     try {
       const res = await fetch(
-        "http://localhost:4000/api/leaderboard?limit=20",
+        "/api/leaderboard?limit=20",
         {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
@@ -145,7 +145,7 @@ export default function Dashboard() {
   useEffect(() => {
     const run = async () => {
       try {
-        const res = await fetch("http://localhost:4000/api/dictionary/english");
+        const res = await fetch("/api/dictionary/english");
         if (!res.ok) throw new Error(`Request failed: ${res.status}`);
         const data: { items: unknown[] } = await res.json();
         setEnglishCount(Array.isArray(data.items) ? data.items.length : 0);
