@@ -11,36 +11,36 @@ const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 
 function levelFromScore(score: number) {
-  if (!Number.isFinite(score) || score < 0) return 1;
-  // L1: 0-24, L2: 25-49, ... L20: 475+
-  return Math.min(20, Math.floor(score / 25) + 1);
+    if (!Number.isFinite(score) || score < 0) return 1;
+    // L1: 0-24, L2: 25-49, ... L40: 975+
+    return Math.min(40, Math.floor(score / 25) + 1);
 }
 
 function progressToNextLevel(score: number) {
-  const level = levelFromScore(score);
+    const level = levelFromScore(score);
 
-  const currentRangeStart = (level - 1) * 25;
-  const currentRangeEnd = level * 25;
+    const currentRangeStart = (level - 1) * 25;
+    const currentRangeEnd = level * 25;
 
-  // Already at max level
-  if (level >= 20) {
+    // Already at max level
+    if (level >= 40) {
+        return {
+            level,
+            progress: 1,
+            currentRangeStart: 975,
+            currentRangeEnd: 1000,
+        };
+    }
+
+    const progress =
+        (score - currentRangeStart) / (currentRangeEnd - currentRangeStart);
+
     return {
-      level,
-      progress: 1,
-      currentRangeStart: 475,
-      currentRangeEnd: 500,
+        level,
+        progress: clamp(progress, 0, 1),
+        currentRangeStart,
+        currentRangeEnd,
     };
-  }
-
-  const progress =
-    (score - currentRangeStart) / (currentRangeEnd - currentRangeStart);
-
-  return {
-    level,
-    progress: clamp(progress, 0, 1),
-    currentRangeStart,
-    currentRangeEnd,
-  };
 }
 
 function getInitials(username: string) {
@@ -216,7 +216,7 @@ export default function Dashboard() {
             {
               label: "LEVEL",
               value: `L${derived.level}`,
-              sub: "of 20 total",
+              sub: "of 40 total",
               color: "#3C3489",
               icon: "🏆",
             },
@@ -522,7 +522,7 @@ export default function Dashboard() {
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Progress to next level</h2>
             <p style={styles.cardSub}>
-              L{derived.level} → L{Math.min(derived.level + 1, 20)}
+              L{derived.level} → L{Math.min(derived.level + 1, 40)}
             </p>
             <div style={styles.progressWrap}>
               <div
@@ -537,9 +537,9 @@ export default function Dashboard() {
               <span>{derived.currentRangeEnd} pts</span>
             </div>
             <p style={{ ...styles.cardSub, marginTop: 12 }}>
-              {derived.level < 20
-                ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 20!`
-                : "Keep scoring to reach Level 20!"}
+            {derived.level < 40
+              ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 40!`
+              : "Keep scoring to reach Level 40!"}
             </p>
           </div>
 
@@ -1037,6 +1037,8 @@ const styles: Record<string, React.CSSProperties> = {
   tableWrap: {
     marginTop: 12,
     overflowX: "auto",
+    maxHeight: "400px",
+    overflowY: "auto",
   },
   table: {
     width: "100%",
