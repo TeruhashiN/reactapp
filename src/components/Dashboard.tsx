@@ -255,40 +255,49 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* ── Level picker ── */}
-        <div style={styles.card}>
-          <div style={styles.cardHeader}>
-            <div>
-              <h2 style={styles.cardTitle}>Choose a level</h2>
-              <p style={styles.cardSub}>
-                Unlock higher levels by scoring 25 points for each level
-              </p>
-            </div>
-            <span style={styles.badgePurple}>
-              Unlocked up to L{derived.level}
-            </span>
-          </div>
-          <div style={styles.levelGrid}>
-            {Array.from({ length: derived.level }).map((_, idx) => {
-              const lvl = idx + 1;
-              const isCurrent = lvl === derived.level;
-              return (
-                <button
-                  key={lvl}
-                  onClick={() => navigate(`/quiz-mode?level=${lvl}`)}
-                  style={{
-                    ...styles.lvlBtn,
-                    ...(isCurrent
-                      ? styles.lvlBtnCurrent
-                      : styles.lvlBtnUnlocked),
-                  }}
-                >
-                  {isCurrent ? "👑 " : ""}L{lvl}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+         {/* ── Level picker ── */}
+         <div style={{
+           ...styles.card,
+           border: "3px solid #6A5ACD",
+           boxShadow: "0 4px 12px rgba(106, 90, 205, 0.15)",
+           backgroundColor: "#F8F4FF",
+           padding: "1.5rem"
+         }}>
+           <div style={styles.cardHeader}>
+             <div>
+               <h2 style={styles.cardTitle}>Choose a level</h2>
+               <p style={styles.cardSub}>
+                 Unlock higher levels by scoring 25 points for each level
+               </p>
+             </div>
+             <span style={styles.badgePurple}>
+               Unlocked up to L{derived.level}
+             </span>
+           </div>
+           <p style={{ ...styles.cardSub, fontSize: 12, fontStyle: "italic", color: "#555", marginTop: 12, marginBottom: 12 }}>
+             Playing levels here contributes to your leaderboard score — make it count!
+           </p>
+           <div style={styles.levelGrid}>
+             {Array.from({ length: derived.level }).map((_, idx) => {
+               const lvl = idx + 1;
+               const isCurrent = lvl === derived.level;
+               return (
+                 <button
+                   key={lvl}
+                   onClick={() => navigate(`/quiz-mode?level=${lvl}`)}
+                   style={{
+                     ...styles.lvlBtn,
+                     ...(isCurrent
+                       ? styles.lvlBtnCurrent
+                       : styles.lvlBtnUnlocked),
+                   }}
+                 >
+                   {isCurrent ? "👑 " : ""}L{lvl}
+                 </button>
+               );
+             })}
+           </div>
+         </div>
 
         {/* ── Timer Quiz ── */}
         <div style={styles.card}>
