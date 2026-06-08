@@ -11,36 +11,36 @@ const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 
 function levelFromScore(score: number) {
-    if (!Number.isFinite(score) || score < 0) return 1;
-    // L1: 0-24, L2: 25-49, ... L40: 975+
-    return Math.min(40, Math.floor(score / 25) + 1);
+  if (!Number.isFinite(score) || score < 0) return 1;
+  // L1: 0-24, L2: 25-49, ... L40: 975+
+  return Math.min(40, Math.floor(score / 25) + 1);
 }
 
 function progressToNextLevel(score: number) {
-    const level = levelFromScore(score);
+  const level = levelFromScore(score);
 
-    const currentRangeStart = (level - 1) * 25;
-    const currentRangeEnd = level * 25;
+  const currentRangeStart = (level - 1) * 25;
+  const currentRangeEnd = level * 25;
 
-    // Already at max level
-    if (level >= 40) {
-        return {
-            level,
-            progress: 1,
-            currentRangeStart: 975,
-            currentRangeEnd: 1000,
-        };
-    }
-
-    const progress =
-        (score - currentRangeStart) / (currentRangeEnd - currentRangeStart);
-
+  // Already at max level
+  if (level >= 40) {
     return {
-        level,
-        progress: clamp(progress, 0, 1),
-        currentRangeStart,
-        currentRangeEnd,
+      level,
+      progress: 1,
+      currentRangeStart: 975,
+      currentRangeEnd: 1000,
     };
+  }
+
+  const progress =
+    (score - currentRangeStart) / (currentRangeEnd - currentRangeStart);
+
+  return {
+    level,
+    progress: clamp(progress, 0, 1),
+    currentRangeStart,
+    currentRangeEnd,
+  };
 }
 
 function getInitials(username: string) {
@@ -115,13 +115,10 @@ export default function Dashboard() {
     if (!token) return;
     setRankingLoading(true);
     try {
-      const res = await fetch(
-        "/api/leaderboard?limit=20",
-        {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const res = await fetch("/api/leaderboard?limit=20", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
       const data: {
         users: {
@@ -209,7 +206,7 @@ export default function Dashboard() {
             <span style={styles.badgeCoral}>🔥 Rising star</span>
           )}
         </div>
-        
+
         {/* ── Stat cards ── */}
         <div style={styles.statGrid}>
           {[
@@ -255,49 +252,61 @@ export default function Dashboard() {
           ))}
         </div>
 
-         {/* ── Level picker ── */}
-         <div style={{
-           ...styles.card,
-           border: "3px solid #6A5ACD",
-           boxShadow: "0 4px 12px rgba(106, 90, 205, 0.15)",
-           backgroundColor: "#F8F4FF",
-           padding: "1.5rem"
-         }}>
-           <div style={styles.cardHeader}>
-             <div>
-               <h2 style={styles.cardTitle}>Choose a level</h2>
-               <p style={styles.cardSub}>
-                 Unlock higher levels by scoring 25 points for each level
-               </p>
-             </div>
-             <span style={styles.badgePurple}>
-               Unlocked up to L{derived.level}
-             </span>
-           </div>
-           <p style={{ ...styles.cardSub, fontSize: 12, fontStyle: "italic", color: "#555", marginTop: 12, marginBottom: 12 }}>
-             Playing levels here contributes to your leaderboard score — make it count!
-           </p>
-           <div style={styles.levelGrid}>
-             {Array.from({ length: derived.level }).map((_, idx) => {
-               const lvl = idx + 1;
-               const isCurrent = lvl === derived.level;
-               return (
-                 <button
-                   key={lvl}
-                   onClick={() => navigate(`/quiz-mode?level=${lvl}`)}
-                   style={{
-                     ...styles.lvlBtn,
-                     ...(isCurrent
-                       ? styles.lvlBtnCurrent
-                       : styles.lvlBtnUnlocked),
-                   }}
-                 >
-                   {isCurrent ? "👑 " : ""}L{lvl}
-                 </button>
-               );
-             })}
-           </div>
-         </div>
+        {/* ── Level picker ── */}
+        <div
+          style={{
+            ...styles.card,
+            border: "3px solid #6A5ACD",
+            boxShadow: "0 4px 12px rgba(106, 90, 205, 0.15)",
+            backgroundColor: "#F8F4FF",
+            padding: "1.5rem",
+          }}
+        >
+          <div style={styles.cardHeader}>
+            <div>
+              <h2 style={styles.cardTitle}>Choose a level</h2>
+              <p style={styles.cardSub}>
+                Unlock higher levels by scoring 25 points for each level
+              </p>
+            </div>
+            <span style={styles.badgePurple}>
+              Unlocked up to L{derived.level}
+            </span>
+          </div>
+          <p
+            style={{
+              ...styles.cardSub,
+              fontSize: 12,
+              fontStyle: "italic",
+              color: "#555",
+              marginTop: 12,
+              marginBottom: 12,
+            }}
+          >
+            Playing levels here contributes to your leaderboard score — make it
+            count!
+          </p>
+          <div style={styles.levelGrid}>
+            {Array.from({ length: derived.level }).map((_, idx) => {
+              const lvl = idx + 1;
+              const isCurrent = lvl === derived.level;
+              return (
+                <button
+                  key={lvl}
+                  onClick={() => navigate(`/quiz-mode?level=${lvl}`)}
+                  style={{
+                    ...styles.lvlBtn,
+                    ...(isCurrent
+                      ? styles.lvlBtnCurrent
+                      : styles.lvlBtnUnlocked),
+                  }}
+                >
+                  {isCurrent ? "👑 " : ""}L{lvl}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* ── Timer Quiz ── */}
         <div style={styles.card}>
@@ -446,36 +455,24 @@ export default function Dashboard() {
           <div style={styles.sectionGrid}>
             <button
               type="button"
+              disabled
+              aria-disabled="true"
               onClick={() => navigate("/multiplayer-quiz")}
               style={{
                 ...styles.secBtn,
                 ...styles.secBtnTeal,
                 width: "100%",
-                cursor: "pointer",
+                cursor: "not-allowed",
+                opacity: 0.55,
                 transition:
                   "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
               }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                  "0 8px 18px rgba(13, 110, 86, 0.12)";
-                (e.currentTarget as HTMLButtonElement).style.transform =
-                  "translateY(-1px)";
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "#C8E8DC";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
-                (e.currentTarget as HTMLButtonElement).style.transform =
-                  "translateY(0)";
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "#E1F5EE";
-              }}
             >
-              <span>⚔️</span>
+              <span>⏸️</span>
               <div>
                 <div style={{ fontWeight: 500 }}>Start Battle</div>
                 <div style={{ fontSize: 12, color: "#085041", opacity: 0.8 }}>
-                  Challenge another player online
+                  Multiplayer battle inactive
                 </div>
               </div>
             </button>
@@ -537,9 +534,9 @@ export default function Dashboard() {
               <span>{derived.currentRangeEnd} pts</span>
             </div>
             <p style={{ ...styles.cardSub, marginTop: 12 }}>
-            {derived.level < 40
-              ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 40!`
-              : "Keep scoring to reach Level 40!"}
+              {derived.level < 40
+                ? `Score ${derived.currentRangeEnd - derived.score} more pts to reach Level 40!`
+                : "Keep scoring to reach Level 40!"}
             </p>
           </div>
 
@@ -917,33 +914,33 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
   },
 
-   /* Level grid */
-   levelGrid: {
-     display: "grid",
-     gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))",
-     gap: 12,
-     marginTop: 12,
-   },
-   lvlBtn: {
-     borderRadius: 10,
-     padding: "0.75rem 0.5rem",
-     fontSize: 15,
-     fontWeight: 600,
-     cursor: "pointer",
-     border: "1px solid",
-     transition: "background 0.15s, transform 0.1s",
-     lineHeight: 1,
-   },
-   lvlBtnCurrent: {
-     background: "#EEEDFE",
-     color: "#3C3489",
-     borderColor: "#AFA9EC",
-   },
-   lvlBtnUnlocked: {
-     background: "#fff",
-     color: "#444441",
-     borderColor: "#B4B2A9",
-   },
+  /* Level grid */
+  levelGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))",
+    gap: 12,
+    marginTop: 12,
+  },
+  lvlBtn: {
+    borderRadius: 10,
+    padding: "0.75rem 0.5rem",
+    fontSize: 15,
+    fontWeight: 600,
+    cursor: "pointer",
+    border: "1px solid",
+    transition: "background 0.15s, transform 0.1s",
+    lineHeight: 1,
+  },
+  lvlBtnCurrent: {
+    background: "#EEEDFE",
+    color: "#3C3489",
+    borderColor: "#AFA9EC",
+  },
+  lvlBtnUnlocked: {
+    background: "#fff",
+    color: "#444441",
+    borderColor: "#B4B2A9",
+  },
 
   /* Section buttons */
   sectionGrid: {
