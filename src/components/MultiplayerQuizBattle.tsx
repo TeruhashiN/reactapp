@@ -11,44 +11,7 @@ type Question = {
 const API = "/api";
 const COUNT_OPTIONS = [5, 10, 20] as const;
 
-const STORAGE_KEY = "__multiplayer_battle_state";
-
 type BattleStatus = "idle" | "waiting" | "in_progress" | "finished";
-
-type BattleState = {
-  challengerId: number;
-  opponentId: number | null;
-  questionCount: number;
-  questions: Question[];
-  challengerScore: number;
-  opponentScore: number;
-  challengerCurrentQ: number;
-  opponentCurrentQ: number;
-  challengerFinished: boolean;
-  opponentFinished: boolean;
-  opponentUsername: string | null;
-  startTime: string | null;
-};
-
-
-
-function readBattleState(): BattleState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as BattleState;
-  } catch {
-    return null;
-  }
-}
-
-function writeBattleState(state: BattleState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-function clearBattleState() {
-  localStorage.removeItem(STORAGE_KEY);
-}
 
 async function safeJson(res: Response) {
   const text = await res.text();
@@ -87,6 +50,17 @@ export default function MultiplayerQuizBattle() {
   const [finished, setFinished] = useState(false);
   const [battleResult, setBattleResult] = useState<string | null>(null);
 
+  const [battleId, setBattleId] = useState<number | null>(null);
+  const [challenges, setChallenges] = useState<
+    Array<{
+      battle_id: number;
+      challenger_id: number;
+      challenger_username: string;
+      question_count: number;
+      created_at: string;
+    }>
+  >([]);
+
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const pollRef = useRef<number | null>(null);
@@ -97,11 +71,14 @@ export default function MultiplayerQuizBattle() {
       setFetching(true);
       setError(null);
       try {
-        const [meRes, lbRes] = await Promise.all([
+        const [meRes, lbRes, challengesRes] = await Promise.all([
           fetch(`${API}/me`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${API}/leaderboard?limit=20`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API}/battle/pending`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -117,6 +94,16 @@ export default function MultiplayerQuizBattle() {
         if (!lbData.ok || !lbData.data?.users)
           throw new Error("Invalid players response");
         setPlayers(lbData.data.users);
+
+        if (challengesRes.ok) {
+          const challengesData = await safeJson(challengesRes);
+          if (
+            challengesData.ok &&
+            Array.isArray(challengesData.data?.battles)
+          ) {
+            setChallenges(challengesData.data.battles);
+          }
+        }
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Failed to load players");
       } finally {
@@ -130,8 +117,6 @@ export default function MultiplayerQuizBattle() {
     ? players.filter((p) => p.user_id !== meId)
     : players;
   const selectedOpponent = players.find((p) => p.user_id === opponentId);
-
-
 
   const startBattle = async () => {
     if (!opponentId || !meId) return;
@@ -157,27 +142,28 @@ export default function MultiplayerQuizBattle() {
         answer: q.answer,
       }));
 
-      const battleState: BattleState = {
-        challengerId: meId,
-        opponentId,
-        questionCount: count,
-        questions: qs,
-        challengerScore: 0,
-        opponentScore: 0,
-        challengerCurrentQ: 0,
-        opponentCurrentQ: 0,
-        challengerFinished: false,
-        opponentFinished: false,
-        opponentUsername: selectedOpponent?.username ?? null,
-        startTime: new Date().toISOString(),
-      };
+      const createRes = await fetch(`${API}/battle/create`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token ?? ""}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          opponent_id: opponentId,
+          question_count: count,
+          questions: qs,
+        }),
+      });
+      const createData = await safeJson(createRes);
+      if (!createData.ok || !createData.data?.battle_id)
+        throw new Error("Failed to create battle");
 
-      writeBattleState(battleState);
-
+      setBattleId(Number(createData.data.battle_id));
       setQuestions(qs);
       setCurrent(0);
       setScore(0);
       setOpponentScore(0);
+      setOpponentUsername(selectedOpponent?.username ?? "");
       setSelectedAnswer(null);
       setResult(null);
       setFinished(false);
@@ -190,38 +176,45 @@ export default function MultiplayerQuizBattle() {
     }
   };
 
-  const markMeWaiting = () => {
-    const existing = readBattleState();
-    if (!existing || !meId) return;
-    const updated: BattleState = {
-      ...existing,
-      challengerScore:
-        existing.challengerId === meId
-          ? existing.challengerScore
-          : existing.opponentScore,
-      opponentScore:
-        existing.challengerId === meId
-          ? existing.opponentScore
-          : existing.challengerScore,
-      challengerCurrentQ:
-        existing.challengerId === meId
-          ? existing.challengerCurrentQ
-          : existing.opponentCurrentQ,
-      opponentCurrentQ:
-        existing.challengerId === meId
-          ? existing.opponentCurrentQ
-          : existing.challengerCurrentQ,
-      challengerFinished:
-        existing.challengerId === meId
-          ? existing.challengerFinished
-          : existing.opponentFinished,
-      opponentFinished:
-        existing.challengerId === meId
-          ? existing.opponentFinished
-          : existing.challengerFinished,
-    };
-    writeBattleState(updated);
-    setStatus("in_progress");
+  const [joiningBattleId, setJoiningBattleId] = useState<number | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
+
+  const joinBattle = async (battleIdToJoin: number) => {
+    if (!token) return;
+    if (joiningBattleId === battleIdToJoin) return;
+
+    setJoinError(null);
+    setJoiningBattleId(battleIdToJoin);
+
+    try {
+      const res = await fetch(`${API}/battle/join`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ battle_id: battleIdToJoin }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        // If already joined, backend returns a clear message.
+        // In that case we still want to continue by polling that battle.
+        if (text.includes("Already joined")) {
+          setBattleId(battleIdToJoin);
+          setStatus("in_progress");
+          return;
+        }
+        throw new Error(text || `Join failed (${res.status})`);
+      }
+
+      setBattleId(battleIdToJoin);
+      setStatus("in_progress");
+    } catch (e: unknown) {
+      setJoinError(e instanceof Error ? e.message : "Failed to join battle");
+    } finally {
+      setJoiningBattleId(null);
+    }
   };
 
   useEffect(() => {
@@ -232,148 +225,148 @@ export default function MultiplayerQuizBattle() {
     }
 
     const poll = async () => {
-      const state = readBattleState();
-      if (!state || !meId) return;
+      if (!battleId || !meId || !token) return;
+      try {
+        const res = await fetch(`${API}/battle/${battleId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await safeJson(res);
+        if (!data.ok || !data.data) return;
 
-      const iAmChallenger = state.challengerId === meId;
-      const myCurrent = iAmChallenger
-        ? state.challengerCurrentQ
-        : state.opponentCurrentQ;
-      const myFinished = iAmChallenger
-        ? state.challengerFinished
-        : state.opponentFinished;
-      const opponentFinished = iAmChallenger
-        ? state.opponentFinished
-        : state.challengerFinished;
-      const opponentScoreRaw = iAmChallenger
-        ? state.opponentScore
-        : state.challengerScore;
+        const st = data.data.battle as {
+          challenger_id: number;
+          opponent_id: number | null;
+          challenger_score: number;
+          opponent_score: number;
+          challenger_current_q: number;
+          opponent_current_q: number;
+          challenger_finished: number;
+          opponent_finished: number;
+          status: "waiting" | "in_progress" | "completed";
+          questions: Question[];
+        };
 
-      setCurrent(myCurrent);
-      setScore(iAmChallenger ? state.challengerScore : state.opponentScore);
-      setOpponentScore(opponentScoreRaw);
+        const iAmChallenger = st.challenger_id === meId;
 
-      if (
-        status === "waiting" &&
-        state.opponentId &&
-        state.opponentId !== state.challengerId
-      ) {
-        const opponentInfo = players.find(
-          (p) => p.user_id === state.opponentId,
-        );
-        if (opponentInfo) setOpponentUsername(opponentInfo.username);
-        if (
-          state.opponentId !== null &&
-          state.opponentId !== state.challengerId
-        ) {
+        // backend stores questions in DB; update local questions so both players render same set
+        if (Array.isArray(st.questions) && st.questions.length) {
+          setQuestions(st.questions);
+        }
+
+        const myCurrent = iAmChallenger
+          ? st.challenger_current_q
+          : st.opponent_current_q;
+        const myFinished = iAmChallenger
+          ? st.challenger_finished === 1
+          : st.opponent_finished === 1;
+        const opponentFinished = iAmChallenger
+          ? st.opponent_finished === 1
+          : st.challenger_finished === 1;
+        const opponentScoreRaw = iAmChallenger
+          ? st.opponent_score
+          : st.challenger_score;
+
+        setCurrent(myCurrent);
+        setScore(iAmChallenger ? st.challenger_score : st.opponent_score);
+        setOpponentScore(opponentScoreRaw);
+
+        // waiting -> in_progress when opponent joins
+        if (st.status === "in_progress") {
           setStatus("in_progress");
         }
-      }
 
-      if (opponentFinished && !finished) {
-        setFinished(true);
-      }
+        if (opponentFinished && !finished) setFinished(true);
 
-      if (myFinished && opponentFinished && !battleResult) {
-        const myTotal = iAmChallenger
-          ? state.challengerScore
-          : state.opponentScore;
-        const oppTotal = opponentScoreRaw;
-        const resultMsg =
-          myTotal > oppTotal
-            ? "🏆 Victory!"
-            : myTotal < oppTotal
-              ? "💥 Defeated"
-              : "🤝 Draw!";
-        setBattleResult(resultMsg);
+        if (myFinished && opponentFinished && !battleResult) {
+          const myTotal = iAmChallenger
+            ? st.challenger_score
+            : st.opponent_score;
+          const oppTotal = opponentScoreRaw;
+          const resultMsg =
+            myTotal > oppTotal
+              ? "🏆 Victory!"
+              : myTotal < oppTotal
+                ? "💥 Defeated"
+                : "🤝 Draw!";
+          setBattleResult(resultMsg);
+        }
+      } catch {
+        // ignore poll errors
       }
     };
 
     poll();
     pollRef.current = window.setInterval(poll, 1000);
 
-    const onStorage = (e: StorageEvent) => {
-      if (
-        e.key === STORAGE_KEY &&
-        (status === "in_progress" || status === "waiting")
-      ) {
-        poll();
-      }
-    };
-
-    window.addEventListener("storage", onStorage);
     return () => {
       if (pollRef.current) window.clearInterval(pollRef.current);
       pollRef.current = 0;
-      window.removeEventListener("storage", onStorage);
     };
-  }, [status, meId, meUsername, finished, battleResult, players]);
+  }, [
+    status,
+    meId,
+    meUsername,
+    finished,
+    battleResult,
+    players,
+    battleId,
+    token,
+  ]);
 
   const handleAnswer = (opt: string) => {
     if (result !== null) return;
     if (finished) return;
     const currentQ = questions[current];
     if (!currentQ) return;
+
     const chosenText = opt.replace(/^[A-D]\. /, "");
     const ok = chosenText === currentQ.answer;
+
     setSelectedAnswer(opt);
-    setScore((s) => s + (ok ? 1 : 0));
     setResult(ok ? "correct" : "wrong");
 
-    const state = readBattleState();
-    if (!state || !meId) return;
-    const iAmChallenger = state.challengerId === meId;
-    const nextIndex = current + 1;
-    const done = nextIndex >= questions.length;
-    const newScore =
-      (iAmChallenger ? state.challengerScore : state.opponentScore) +
-      (ok ? 1 : 0);
+    // send correctness to server; server will update both players via DB polling
+    void submitAnswer(ok);
+  };
 
-    const updated: BattleState = {
-      ...state,
-      challengerScore: iAmChallenger ? newScore : state.challengerScore,
-      opponentScore: iAmChallenger ? state.opponentScore : newScore,
-      challengerCurrentQ: iAmChallenger ? nextIndex : state.challengerCurrentQ,
-      opponentCurrentQ: iAmChallenger ? state.opponentCurrentQ : nextIndex,
-      challengerFinished: iAmChallenger ? done : state.challengerFinished,
-      opponentFinished: iAmChallenger ? state.opponentFinished : done,
-    };
+  const submitAnswer = async (isCorrect: boolean) => {
+    if (!battleId || !token) return;
 
-    writeBattleState(updated);
+    // Server expects: question_index and is_correct
+    const questionIndex = current;
+    const done = questionIndex + 1 >= questions.length;
 
-    if (done && !battleResult) {
-      setFinished(true);
-      setTimeout(() => {
-        const fresh = readBattleState();
-        if (!fresh) return;
-        const myTotal = iAmChallenger
-          ? fresh.challengerScore
-          : fresh.opponentScore;
-        const oppTotal = iAmChallenger
-          ? fresh.opponentScore
-          : fresh.challengerScore;
-        setBattleResult(
-          myTotal > oppTotal
-            ? "🏆 Victory!"
-            : myTotal < oppTotal
-              ? "💥 Defeated"
-              : "🤝 Draw!",
-        );
-      }, 300);
+    try {
+      const res = await fetch(`${API}/battle/answer`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          battle_id: battleId,
+          question_index: questionIndex,
+          is_correct: isCorrect,
+          finished: done,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Answer failed (${res.status})`);
+      }
+
+      // The poll loop will update scores/currentQ and the final result.
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to submit answer");
     }
   };
 
   const nextQuestion = () => {
-    if (current + 1 >= questions.length) {
-      setFinished(true);
-      setResult(null);
-      setSelectedAnswer(null);
-      setCurrent((c) => c + 1);
-    } else {
-      setCurrent((c) => c + 1);
-      setSelectedAnswer(null);
-      setResult(null);
-    }
+    // movement is controlled by server polling
+    setResult(null);
+    setSelectedAnswer(null);
   };
 
   const leaveBattle = () => {
@@ -390,7 +383,7 @@ export default function MultiplayerQuizBattle() {
     setResult(null);
     setOpponentId(null);
     setOpponentUsername("");
-    clearBattleState();
+    setBattleId(null);
   };
 
   if (status === "waiting") {
@@ -461,10 +454,13 @@ export default function MultiplayerQuizBattle() {
               </button>
               <button
                 type="button"
-                onClick={markMeWaiting}
+                onClick={() => {
+                  setStatus("in_progress");
+                }}
                 style={{ ...styles.startBtn, flex: 1 }}
+                disabled
               >
-                Start Anyway (practice)
+                Waiting (practice disabled)
               </button>
             </div>
           </div>
@@ -642,6 +638,8 @@ export default function MultiplayerQuizBattle() {
     );
   }
 
+  // If user is opponent, attempt to join any pending battle
+
   if (
     (finished ||
       battleResult ||
@@ -704,6 +702,46 @@ export default function MultiplayerQuizBattle() {
     );
   }
 
+  // pending battles come from /api/battle/pending and are only in `waiting` state.
+  // challenger_id exists; opponent must call /api/battle/join with battle_id.
+  const pendingBattles = challenges;
+
+  const JoinPendingBattleUI = () => {
+    if (!pendingBattles.length) return null;
+
+    // Show only when this user has not started/been assigned a battle yet
+    if (battleId !== null) return null;
+
+    return (
+      <div style={styles.card}>
+        <h3 style={{ ...styles.cardTitle, marginBottom: 4 }}>
+          Join a waiting battle
+        </h3>
+        <p style={styles.cardSub}>
+          Pick a challenger from the list below. When you join, the game starts
+          automatically.
+        </p>
+
+        <div style={styles.pendingGrid}>
+          {pendingBattles.map((b) => (
+            <button
+              key={b.battle_id}
+              type="button"
+              onClick={() => joinBattle(b.battle_id)}
+              disabled={joiningBattleId === b.battle_id}
+              style={styles.pendingBtn}
+            >
+              <div style={{ fontWeight: 700 }}>{b.challenger_username}</div>
+              <div style={{ fontSize: 12, color: "#888780" }}>
+                Battle #{b.battle_id} • {b.question_count} Q
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={styles.page}>
       <div style={styles.container}>
@@ -732,7 +770,10 @@ export default function MultiplayerQuizBattle() {
             head-to-head in real time.
           </p>
           {error && <p style={styles.errorText}>Error: {error}</p>}
+          {joinError && <p style={styles.errorText}>Join Error: {joinError}</p>}
         </div>
+
+        <JoinPendingBattleUI />
 
         <div style={styles.card}>
           <h3 style={{ ...styles.cardTitle, marginBottom: 4 }}>
@@ -1137,5 +1178,19 @@ const styles: Record<string, React.CSSProperties> = {
   },
   questionBlock: {
     marginTop: 8,
+  },
+  pendingGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 8,
+    marginTop: 12,
+  },
+  pendingBtn: {
+    borderRadius: 10,
+    border: "0.5px solid #D3D1C7",
+    background: "#fff",
+    padding: "0.9rem 1rem",
+    cursor: "pointer",
+    textAlign: "left",
   },
 };

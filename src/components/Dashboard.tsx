@@ -455,15 +455,13 @@ export default function Dashboard() {
           <div style={styles.sectionGrid}>
             <button
               type="button"
-              disabled
-              aria-disabled="true"
               onClick={() => navigate("/multiplayer-quiz")}
               style={{
                 ...styles.secBtn,
                 ...styles.secBtnTeal,
                 width: "100%",
-                cursor: "not-allowed",
-                opacity: 0.55,
+                cursor: "pointer",
+                opacity: 1,
                 transition:
                   "transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease",
               }}
@@ -472,7 +470,7 @@ export default function Dashboard() {
               <div>
                 <div style={{ fontWeight: 500 }}>Start Battle</div>
                 <div style={{ fontSize: 12, color: "#085041", opacity: 0.8 }}>
-                  Multiplayer battle inactive
+                  Start head-to-head battle
                 </div>
               </div>
             </button>

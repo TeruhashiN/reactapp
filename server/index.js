@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const jwt = require('jsonwebtoken');
-const { createTables, getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore, TABLE } = require('./db');
+const { createTables, getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore, TABLE, createBattle, getBattle, joinBattle, updateAnswer, listPendingBattlesForUser } = require('./db');
 const { requireAuth } = require('./auth');
 const { pool } = require('./db');
 
@@ -198,6 +198,84 @@ app.get('/api/leaderboard', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/multiplayer/create', requireAuth, async (req, res) => {
+  try {
+    const { opponentId, questionCount, questions } = req.body || {};
+    if (!Number.isInteger(questionCount) || !Array.isArray(questions) || !Number.isInteger(opponentId)) {
+      return res.status(400).json({ message: 'opponentId, questionCount, and questions are required' });
+    }
+    const battleId = await createBattle({
+      challengerId: req.user.user_id,
+      opponentId,
+      questionCount,
+      questions,
+    });
+    return res.json({ battleId });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err?.message });
+  }
+});
+
+app.get('/api/multiplayer/pending', requireAuth, async (req, res) => {
+  try {
+    const pending = await listPendingBattlesForUser(req.user.user_id);
+    return res.json({ pending });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/multiplayer/battle/:id', requireAuth, async (req, res) => {
+  try {
+    const battleId = parseInt(req.params.id, 10);
+    const battle = await getBattle(battleId);
+    if (!battle) return res.status(404).json({ message: 'Battle not found' });
+    const userId = req.user.user_id;
+    if (Number(battle.challenger_id) !== userId && Number(battle.opponent_id) !== userId) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    return res.json({ battle });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/multiplayer/battle/:id/join', requireAuth, async (req, res) => {
+  try {
+    const battleId = parseInt(req.params.id, 10);
+    const joined = await joinBattle(battleId, req.user.user_id);
+    if (!joined) return res.status(400).json({ message: 'Cannot join battle' });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err?.message });
+  }
+});
+
+app.post('/api/multiplayer/battle/:id/answer', requireAuth, async (req, res) => {
+  try {
+    const battleId = parseInt(req.params.id, 10);
+    const { questionIndex, selectedAnswer, isCorrect, finished } = req.body || {};
+    if (!Number.isInteger(questionIndex)) {
+      return res.status(400).json({ message: 'questionIndex is required' });
+    }
+    const result = await updateAnswer(battleId, req.user.user_id, {
+      questionIndex,
+      selectedAnswer,
+      isCorrect: Boolean(isCorrect),
+      finished: Boolean(finished),
+    });
+    if (!result) return res.status(404).json({ message: 'Battle not found' });
+    return res.json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error', error: err?.message });
   }
 });
 

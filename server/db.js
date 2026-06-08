@@ -110,14 +110,9 @@ async function updateAnswer(battleId, userId, { questionIndex, selectedAnswer, i
     isChallenger ? battle.challenger_current_q : battle.opponent_current_q,
     Number(questionIndex) + 1,
   );
-  const nextFinished = finished
-    ? (isChallenger ? 1 : 2)
-    : (isChallenger ? battle.challenger_finished : battle.opponent_finished);
-
-  const bothFinished = nextFinished === 3 || (
-    (isChallenger ? nextFinished : battle.challenger_finished) === 1 &&
-    (isChallenger ? battle.opponent_finished : nextFinished) === 2
-  );
+  const challengerFinishedAfter = isChallenger ? (finished ? 1 : battle.challenger_finished) : battle.challenger_finished;
+  const opponentFinishedAfter = !isChallenger ? (finished ? 1 : battle.opponent_finished) : battle.opponent_finished;
+  const bothFinished = challengerFinishedAfter === 1 && opponentFinishedAfter === 1;
   const newStatus = bothFinished ? 'completed' : 'in_progress';
 
   await pool.query(
@@ -127,15 +122,14 @@ async function updateAnswer(battleId, userId, { questionIndex, selectedAnswer, i
        ${isChallenger ? 'challenger_finished' : 'opponent_finished'} = ?,
        status = ?
      WHERE battle_id = ?`,
-    [nextScore, nextIndex, nextFinished, newStatus, battleId]
+    [nextScore, nextIndex, finished ? 1 : (isChallenger ? battle.challenger_finished : battle.opponent_finished), newStatus, battleId]
   );
 
-  const opponentFinished = bothFinished || newStatus === 'completed';
   return {
     score: nextScore,
     currentQ: nextIndex,
-    finished: Boolean(nextFinished),
-    opponentFinished,
+    finished: Boolean(finished ? 1 : (isChallenger ? battle.challenger_finished : battle.opponent_finished)),
+    opponentFinished: Boolean(isChallenger ? opponentFinishedAfter : challengerFinishedAfter),
     status: newStatus,
     questions: typeof battle.questions === 'string' ? JSON.parse(battle.questions) : battle.questions,
   };
@@ -143,7 +137,11 @@ async function updateAnswer(battleId, userId, { questionIndex, selectedAnswer, i
 
 async function listPendingBattlesForUser(userId) {
   const [rows] = await pool.query(
-    `SELECT battle_id, challenger_id, question_count, created_at FROM multiplayer_battles WHERE opponent_id = ? AND status = 'waiting' ORDER BY created_at ASC`,
+    `SELECT b.battle_id, b.challenger_id, b.question_count, b.created_at, u.username as challenger_username
+     FROM multiplayer_battles b
+     JOIN \`${TABLE()}\` u ON b.challenger_id = u.user_id
+     WHERE b.opponent_id = ? AND b.status = 'waiting'
+     ORDER BY b.created_at ASC`,
     [userId]
   );
   return rows;
@@ -203,4 +201,18 @@ async function createTables() {
   }
 }
 
-module.exports = { getUserByUsername, getUserById, getLevelScores, setLevelScore, getTotalScore, createTables, pool, TABLE };
+module.exports = {
+  getUserByUsername,
+  getUserById,
+  getLevelScores,
+  setLevelScore,
+  getTotalScore,
+  createTables,
+  pool,
+  TABLE,
+  createBattle,
+  getBattle,
+  joinBattle,
+  updateAnswer,
+  listPendingBattlesForUser,
+};
