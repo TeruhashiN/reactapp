@@ -48,6 +48,7 @@ export default function MultiplayerQuizBattle() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [result, setResult] = useState<"correct" | "wrong" | null>(null);
   const [finished, setFinished] = useState(false);
+  const [iFinished, setIFinished] = useState(false);
   const [battleResult, setBattleResult] = useState<string | null>(null);
 
   const [battleId, setBattleId] = useState<number | null>(null);
@@ -135,12 +136,22 @@ export default function MultiplayerQuizBattle() {
       if (!data.ok || !data.data?.questions)
         throw new Error("Invalid questions response");
 
-      const qs: Question[] = data.data.questions.map((q: any) => ({
-        id: q.id,
-        word: q.word,
-        options: q.options,
-        answer: q.answer,
-      }));
+      const qs: Question[] = (data.data.questions as unknown[]).map(
+        (q: unknown) => {
+          const qq = q as {
+            id: number;
+            word: string;
+            options: string[];
+            answer: string;
+          };
+          return {
+            id: qq.id,
+            word: qq.word,
+            options: qq.options,
+            answer: qq.answer,
+          };
+        },
+      );
 
       const createRes = await fetch(`${API}/battle/create`, {
         method: "POST",
@@ -154,6 +165,12 @@ export default function MultiplayerQuizBattle() {
           questions: qs,
         }),
       });
+
+      if (!createRes.ok) {
+        const raw = await createRes.text().catch(() => "");
+        throw new Error(raw || `Failed to create battle (${createRes.status})`);
+      }
+
       const createData = await safeJson(createRes);
       if (!createData.ok || !createData.data?.battle_id)
         throw new Error("Failed to create battle");
@@ -198,8 +215,6 @@ export default function MultiplayerQuizBattle() {
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        // If already joined, backend returns a clear message.
-        // In that case we still want to continue by polling that battle.
         if (text.includes("Already joined")) {
           setBattleId(battleIdToJoin);
           setStatus("in_progress");
@@ -249,7 +264,6 @@ export default function MultiplayerQuizBattle() {
 
         const iAmChallenger = st.challenger_id === meId;
 
-        // backend stores questions in DB; update local questions so both players render same set
         if (Array.isArray(st.questions) && st.questions.length) {
           setQuestions(st.questions);
         }
@@ -263,6 +277,7 @@ export default function MultiplayerQuizBattle() {
         const opponentFinished = iAmChallenger
           ? st.opponent_finished === 1
           : st.challenger_finished === 1;
+
         const opponentScoreRaw = iAmChallenger
           ? st.opponent_score
           : st.challenger_score;
@@ -271,12 +286,11 @@ export default function MultiplayerQuizBattle() {
         setScore(iAmChallenger ? st.challenger_score : st.opponent_score);
         setOpponentScore(opponentScoreRaw);
 
-        // waiting -> in_progress when opponent joins
         if (st.status === "in_progress") {
           setStatus("in_progress");
         }
 
-        if (opponentFinished && !finished) setFinished(true);
+        if (myFinished) setIFinished(true);
 
         if (myFinished && opponentFinished && !battleResult) {
           const myTotal = iAmChallenger
@@ -290,7 +304,11 @@ export default function MultiplayerQuizBattle() {
                 ? "💥 Defeated"
                 : "🤝 Draw!";
           setBattleResult(resultMsg);
+        } else if (opponentFinished && !myFinished && !iFinished) {
+          setBattleResult(null);
         }
+
+        if (opponentFinished && !finished) setFinished(true);
       } catch {
         // ignore poll errors
       }
@@ -326,14 +344,12 @@ export default function MultiplayerQuizBattle() {
     setSelectedAnswer(opt);
     setResult(ok ? "correct" : "wrong");
 
-    // send correctness to server; server will update both players via DB polling
     void submitAnswer(ok);
   };
 
   const submitAnswer = async (isCorrect: boolean) => {
     if (!battleId || !token) return;
 
-    // Server expects: question_index and is_correct
     const questionIndex = current;
     const done = questionIndex + 1 >= questions.length;
 
@@ -356,15 +372,12 @@ export default function MultiplayerQuizBattle() {
         const text = await res.text().catch(() => "");
         throw new Error(text || `Answer failed (${res.status})`);
       }
-
-      // The poll loop will update scores/currentQ and the final result.
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to submit answer");
     }
   };
 
   const nextQuestion = () => {
-    // movement is controlled by server polling
     setResult(null);
     setSelectedAnswer(null);
   };
@@ -386,6 +399,7 @@ export default function MultiplayerQuizBattle() {
     setBattleId(null);
   };
 
+  // ─── Waiting screen ───────────────────────────────────────────────────────
   if (status === "waiting") {
     const displayOpponent =
       opponentUsername || selectedOpponent?.username || "Opponent";
@@ -454,9 +468,6 @@ export default function MultiplayerQuizBattle() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setStatus("in_progress");
-                }}
                 style={{ ...styles.startBtn, flex: 1 }}
                 disabled
               >
@@ -469,168 +480,238 @@ export default function MultiplayerQuizBattle() {
     );
   }
 
+  // ─── In-progress screen ───────────────────────────────────────────────────
   if (
     status === "in_progress" &&
     questions.length > 0 &&
     !finished &&
     !battleResult
   ) {
-    const q = questions[current];
+    const q = questions[current] || questions[0];
+    const showWaiting = iFinished;
     return (
       <div style={styles.page}>
         <div style={styles.container}>
           <div style={styles.card}>
-            <div style={styles.progressInfo}>
-              <span>
-                Q {current + 1} / {questions.length}
-              </span>
-              <span style={{ fontWeight: 500 }}>
-                Versus{" "}
-                {opponentUsername || selectedOpponent?.username || "Opponent"}
-              </span>
-            </div>
-            <div style={styles.progressWrap}>
-              <div
-                style={{
-                  ...styles.progressBar,
-                  width: `${((current + 1) / questions.length) * 100}%`,
-                }}
-              />
-            </div>
-
-            <div style={styles.liveScores}>
-              <div
-                style={{
-                  ...styles.scoreBox,
-                  background: "#EEEDFE",
-                  color: "#3C3489",
-                }}
-              >
-                <div
+            {showWaiting ? (
+              <>
+                <h2
                   style={{
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
+                    ...styles.cardTitle,
+                    marginBottom: 8,
+                    textAlign: "center",
                   }}
                 >
-                  You ({meUsername})
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 600 }}>{score}</div>
-                <div style={{ fontSize: 11, color: "#3C3489" }}>
-                  Q {current + 1}
-                </div>
-              </div>
-              <div
-                style={{
-                  ...styles.scoreBox,
-                  background: "#FAECE7",
-                  color: "#993C1D",
-                }}
-              >
-                <div
+                  ⏳ Waiting for opponent to finish...
+                </h2>
+                <p
                   style={{
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
+                    ...styles.cardSub,
+                    marginBottom: 16,
+                    textAlign: "center",
                   }}
                 >
-                  {opponentUsername || selectedOpponent?.username || "Opponent"}
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 600 }}>
-                  {opponentScore}
-                </div>
-                <div style={{ fontSize: 11, color: "#993C1D" }}>
-                  Q{" "}
-                  {opponentScore !== undefined
-                    ? Math.min(opponentScore, questions.length)
-                    : 0}
-                </div>
-              </div>
-            </div>
+                  You've answered all questions. Your final score:
+                </p>
 
-            <div style={styles.questionBlock}>
-              <p
-                style={{
-                  ...styles.cardSub,
-                  marginBottom: 6,
-                  textAlign: "center",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                What does this word mean?
-              </p>
-              <h3
-                style={{
-                  ...styles.cardTitle,
-                  marginBottom: 16,
-                  fontSize: 18,
-                  textAlign: "center",
-                  fontStyle: "italic",
-                }}
-              >
-                “{q.word}”
-              </h3>
-              <div style={optionsGridStyle}>
-                {q.options.map((opt, idx) => {
-                  const letter = OPTION_LETTERS[idx];
-                  const plain = opt.replace(/^[A-D]\. /, "");
-                  let btnStyle: React.CSSProperties = optionBtnBase;
-                  if (result && opt === selectedAnswer) {
-                    btnStyle =
-                      result === "correct" ? optionBtnCorrect : optionBtnWrong;
-                  } else if (
-                    result &&
-                    result === "wrong" &&
-                    plain === q.answer
-                  ) {
-                    btnStyle = optionBtnReveal;
-                  }
-                  const isChosen = selectedAnswer === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => handleAnswer(opt)}
-                      disabled={result !== null}
-                      style={btnStyle}
+                <div style={styles.liveScores}>
+                  <div
+                    style={{
+                      ...styles.scoreBox,
+                      background: "#EEEDFE",
+                      color: "#3C3489",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
                     >
-                      <span
-                        style={{
-                          ...optLetter,
-                          ...(isChosen ? optLetterSelected : {}),
-                        }}
-                      >
-                        {letter}
-                      </span>
-                      <span>{plain}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                      You ({meUsername})
+                    </div>
+                    <div style={{ fontSize: 32, fontWeight: 600 }}>{score}</div>
+                    <div style={{ fontSize: 12, color: "#3C3489" }}>
+                      / {questions.length}
+                    </div>
+                  </div>
 
-            {result !== null && (
-              <div style={resultBarStyle}>
-                <span
+                  <div
+                    style={{
+                      ...styles.scoreBox,
+                      background: "#FAECE7",
+                      color: "#993C1D",
+                      opacity: 0.6,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      {opponentUsername ||
+                        selectedOpponent?.username ||
+                        "Opponent"}
+                    </div>
+                    <div style={{ fontSize: 32, fontWeight: 600 }}>
+                      {opponentScore}/{questions.length}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#993C1D" }}>
+                      playing...
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={styles.progressInfo}>
+                  <span>
+                    Q {current + 1} / {questions.length}
+                  </span>
+                  <span style={{ fontWeight: 500 }}>
+                    Versus{" "}
+                    {opponentUsername ||
+                      selectedOpponent?.username ||
+                      "Opponent"}
+                  </span>
+                </div>
+
+                <div style={styles.liveScores}>
+                  <div
+                    style={{
+                      ...styles.scoreBox,
+                      background: "#EEEDFE",
+                      color: "#3C3489",
+                      opacity: 0.6,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 10,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      You ({meUsername})
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 600 }}>•••</div>
+                  </div>
+
+                  <div
+                    style={{
+                      ...styles.scoreBox,
+                      background: "#FAECE7",
+                      color: "#993C1D",
+                      opacity: 0.6,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 10,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      {opponentUsername ||
+                        selectedOpponent?.username ||
+                        "Opponent"}
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 600 }}>
+                      {opponentScore === 0 ? "0" : "??"}
+                    </div>
+                  </div>
+                </div>
+
+                <p
                   style={{
-                    color: result === "correct" ? "#085041" : "#993C1D",
-                    fontWeight: 500,
-                    fontSize: 13,
+                    ...styles.cardSub,
+                    textAlign: "center",
+                    marginTop: 8,
                   }}
                 >
-                  {result === "correct"
-                    ? "✅ Correct!"
-                    : `❌ Wrong! Answer: ${q.answer}`}
-                </span>
-                <button
-                  type="button"
-                  onClick={nextQuestion}
-                  style={nextBtnStyle}
-                >
-                  {current + 1 >= questions.length - 1 ? "Finish" : "Next →"}
-                </button>
-              </div>
+                  Scores are hidden until both players finish.
+                </p>
+
+                <div style={styles.questionBlock}>
+                  <p
+                    style={{
+                      ...styles.cardSub,
+                      marginBottom: 6,
+                      textAlign: "center",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    What does this word mean?
+                  </p>
+
+                  <h3
+                    style={{
+                      ...styles.cardTitle,
+                      marginBottom: 16,
+                      fontSize: 18,
+                      textAlign: "center",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    "{q.word}"
+                  </h3>
+
+                  <div style={optionsGridStyle}>
+                    {q.options.map((opt, idx) => {
+                      const letter = OPTION_LETTERS[idx];
+                      const plain = opt.replace(/^[A-D]\. /, "");
+                      const isChosen = selectedAnswer === opt;
+                      const isDisabled = result !== null;
+
+                      const baseStyle: React.CSSProperties = isChosen
+                        ? {
+                            ...optionBtnBase,
+                            borderColor: "#3C3489",
+                            background: "#F8F7FF",
+                          }
+                        : optionBtnBase;
+
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => handleAnswer(opt)}
+                          disabled={isDisabled}
+                          style={baseStyle}
+                        >
+                          <span
+                            style={{
+                              ...optLetter,
+                              ...(isChosen ? optLetterSelected : {}),
+                            }}
+                          >
+                            {letter}
+                          </span>
+                          <span>{plain}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {result !== null && (
+                  <div style={resultBarStyle}>
+                    <button
+                      type="button"
+                      onClick={nextQuestion}
+                      style={nextBtnStyle}
+                    >
+                      {current + 1 >= questions.length - 1
+                        ? "Finish"
+                        : "Next →"}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -638,49 +719,132 @@ export default function MultiplayerQuizBattle() {
     );
   }
 
-  // If user is opponent, attempt to join any pending battle
-
+  // ─── Result screen ────────────────────────────────────────────────────────
   if (
     (finished ||
       battleResult ||
       (status === "in_progress" && questions.length > 0)) &&
     battleResult
   ) {
+    const isDraw = battleResult.includes("Draw");
+    const isVictory = battleResult.includes("Victory");
+
     return (
       <div style={styles.page}>
         <div style={styles.container}>
           <div style={styles.card}>
-            <h2 style={{ ...styles.cardTitle, fontSize: 18, marginBottom: 8 }}>
+            <h2
+              style={{
+                ...styles.cardTitle,
+                fontSize: 22,
+                marginBottom: 4,
+                textAlign: "center",
+              }}
+            >
               {battleResult}
             </h2>
-            <p style={{ ...styles.cardSub, marginBottom: 20 }}>
-              You: {score} — Opponent: {opponentScore}
+
+            {/* Winner/loser/draw summary line */}
+            <p
+              style={{
+                ...styles.cardSub,
+                textAlign: "center",
+                marginBottom: 4,
+                fontSize: 13,
+              }}
+            >
+              {isDraw
+                ? "Both players scored the same — well played!"
+                : isVictory
+                  ? `You outscored ${opponentUsername || "your opponent"}`
+                  : `${opponentUsername || "Your opponent"} outscored you this time`}
             </p>
-            <div style={optionsGridStyle}>
+
+            {/* Score comparison boxes */}
+            <div style={styles.liveScores}>
               <div
                 style={{
-                  ...scoreBoxStyle,
+                  ...styles.scoreBox,
                   background: "#EEEDFE",
                   color: "#3C3489",
+                  border: isVictory
+                    ? "1.5px solid #3C3489"
+                    : "0.5px solid #AFA9EC",
+                  borderRadius: 12,
                 }}
               >
-                <div style={{ fontWeight: 600 }}>You</div>
-                <div style={{ fontSize: 20 }}>{score}</div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    fontWeight: 500,
+                  }}
+                >
+                  You
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    margin: "3px 0 8px",
+                    color: "#534AB7",
+                  }}
+                >
+                  {meUsername}
+                </div>
+                <div
+                  style={{ fontSize: 32, fontWeight: 600, color: "#3C3489" }}
+                >
+                  {score}
+                </div>
+                <div style={{ fontSize: 11, color: "#534AB7", marginTop: 4 }}>
+                  / {questions.length} correct
+                </div>
               </div>
+
               <div
                 style={{
-                  ...scoreBoxStyle,
+                  ...styles.scoreBox,
                   background: "#FAECE7",
                   color: "#993C1D",
+                  border:
+                    !isVictory && !isDraw
+                      ? "1.5px solid #993C1D"
+                      : "0.5px solid #F0997B",
+                  borderRadius: 12,
                 }}
               >
-                <div style={{ fontWeight: 600 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    fontWeight: 500,
+                  }}
+                >
+                  Opponent
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    margin: "3px 0 8px",
+                    color: "#993C1D",
+                  }}
+                >
                   {opponentUsername || "Opponent"}
                 </div>
-                <div style={{ fontSize: 20 }}>{opponentScore}</div>
+                <div
+                  style={{ fontSize: 32, fontWeight: 600, color: "#712B13" }}
+                >
+                  {opponentScore}
+                </div>
+                <div style={{ fontSize: 11, color: "#993C1D", marginTop: 4 }}>
+                  / {questions.length} correct
+                </div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
               <button
                 type="button"
                 onClick={leaveBattle}
@@ -702,24 +866,22 @@ export default function MultiplayerQuizBattle() {
     );
   }
 
-  // pending battles come from /api/battle/pending and are only in `waiting` state.
-  // challenger_id exists; opponent must call /api/battle/join with battle_id.
+  // ─── Idle / lobby screen ──────────────────────────────────────────────────
   const pendingBattles = challenges;
 
   const JoinPendingBattleUI = () => {
     if (!pendingBattles.length) return null;
-
-    // Show only when this user has not started/been assigned a battle yet
     if (battleId !== null) return null;
 
     return (
-      <div style={styles.card}>
-        <h3 style={{ ...styles.cardTitle, marginBottom: 4 }}>
+      // CHANGE 2: highlighted challenge card
+      <div style={styles.challengeCard}>
+        <div style={styles.challengeBadge}>⚔️ Challenges waiting</div>
+        <h3 style={{ ...styles.cardTitle, marginBottom: 4, color: "#26215C" }}>
           Join a waiting battle
         </h3>
-        <p style={styles.cardSub}>
-          Pick a challenger from the list below. When you join, the game starts
-          automatically.
+        <p style={{ ...styles.cardSub, marginBottom: 12, color: "#534AB7" }}>
+          A challenger is ready — jump in to start immediately.
         </p>
 
         <div style={styles.pendingGrid}>
@@ -731,9 +893,11 @@ export default function MultiplayerQuizBattle() {
               disabled={joiningBattleId === b.battle_id}
               style={styles.pendingBtn}
             >
-              <div style={{ fontWeight: 700 }}>{b.challenger_username}</div>
-              <div style={{ fontSize: 12, color: "#888780" }}>
-                Battle #{b.battle_id} • {b.question_count} Q
+              <div style={{ fontWeight: 700, color: "#26215C" }}>
+                {b.challenger_username}
+              </div>
+              <div style={{ fontSize: 12, color: "#534AB7" }}>
+                Battle #{b.battle_id} · {b.question_count} Q
               </div>
             </button>
           ))}
@@ -749,10 +913,7 @@ export default function MultiplayerQuizBattle() {
           <button
             type="button"
             onClick={() => navigate("/dashboard")}
-            style={{
-              ...styles.backBtn,
-              opacity: 0.8,
-            }}
+            style={{ ...styles.backBtn, opacity: 0.8 }}
             onMouseEnter={(e) =>
               ((e.currentTarget as HTMLButtonElement).style.opacity = "1")
             }
@@ -780,8 +941,7 @@ export default function MultiplayerQuizBattle() {
             1. Choose Active Player
           </h3>
           <p style={{ ...styles.cardSub, marginBottom: 12 }}>
-            Select a player to challenge. Your score updates will be shown live
-            to them and theirs to you.
+            Select a player to challenge.
           </p>
 
           {fetching ? (
@@ -789,6 +949,7 @@ export default function MultiplayerQuizBattle() {
           ) : opponentPlayers.length === 0 ? (
             <p style={styles.loadingText}>No players available.</p>
           ) : (
+            // CHANGE 1: scrollable player grid
             <div style={playerGridStyle}>
               {opponentPlayers.map((p) => {
                 const isSelected = opponentId === p.user_id;
@@ -894,10 +1055,7 @@ export default function MultiplayerQuizBattle() {
         <button
           type="button"
           onClick={() => navigate("/dashboard")}
-          style={{
-            ...styles.secondaryBtn,
-            marginTop: 8,
-          }}
+          style={{ ...styles.secondaryBtn, marginTop: 8 }}
         >
           ← Back to Dashboard
         </button>
@@ -908,9 +1066,15 @@ export default function MultiplayerQuizBattle() {
 
 const OPTION_LETTERS = ["A", "B", "C", "D"] as const;
 
+// CHANGE 1: compact scrollable grid, 220px max-height
 const playerGridStyle: React.CSSProperties = {
   display: "grid",
-  gap: 8,
+  gap: 6,
+  gridTemplateColumns: "1fr",
+  maxHeight: 520,
+  overflowY: "auto",
+  paddingRight: 8,
+  alignContent: "start",
 };
 
 const playerCard: React.CSSProperties = {
@@ -986,24 +1150,12 @@ const optionBtnBase: React.CSSProperties = {
   transition: "background 0.15s, border-color 0.15s, transform 0.1s",
 };
 
-const optionBtnCorrect: React.CSSProperties = {
-  background: "#E1F5EE",
-  borderColor: "#5DCAA5",
-  color: "#085041",
-  transform: "scale(1.01)",
-};
-
-const optionBtnWrong: React.CSSProperties = {
-  background: "#FAECE7",
-  borderColor: "#F0997B",
-  color: "#993C1D",
-};
-
-const optionBtnReveal: React.CSSProperties = {
-  background: "#fff",
-  borderColor: "#B4B2A9",
-  color: "#2C2C2A",
-};
+/**
+ * NOTE:
+ * These styles are kept for possible future UI states,
+ * but currently unused in this component.
+ * Removed unused-vars lint errors by not declaring unused constants.
+ */
 
 const optLetter: React.CSSProperties = {
   width: 22,
@@ -1052,15 +1204,6 @@ const resultBarStyle: React.CSSProperties = {
   fontFamily: "inherit",
 };
 
-const scoreBoxStyle: React.CSSProperties = {
-  flex: 1,
-  borderRadius: 10,
-  padding: "0.85rem",
-  textAlign: "center",
-  fontSize: 13,
-  fontFamily: "inherit",
-};
-
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
@@ -1098,6 +1241,28 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "1.25rem",
     marginBottom: "1rem",
   },
+  // CHANGE 2: highlighted challenge card style
+  challengeCard: {
+    background: "#EEEDFE",
+    border: "1.5px solid #3C3489",
+    borderLeft: "4px solid #3C3489",
+    borderRadius: 12,
+    padding: "1.25rem",
+    marginBottom: "1rem",
+  },
+  challengeBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    background: "#3C3489",
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: 500,
+    padding: "3px 10px",
+    borderRadius: 20,
+    marginBottom: 8,
+    letterSpacing: "0.05em",
+  } as React.CSSProperties,
   cardTitle: {
     fontSize: 15,
     fontWeight: 500,
@@ -1187,7 +1352,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   pendingBtn: {
     borderRadius: 10,
-    border: "0.5px solid #D3D1C7",
+    border: "0.5px solid #AFA9EC",
     background: "#fff",
     padding: "0.9rem 1rem",
     cursor: "pointer",

@@ -297,12 +297,35 @@ function route_battle_create(PDO $pdo): void {
     $opponentId = isset($input['opponent_id']) ? (int) $input['opponent_id'] : 0;
     $questionCount = isset($input['question_count']) ? (int) $input['question_count'] : 10;
     $questions = isset($input['questions']) && is_array($input['questions']) ? $input['questions'] : [];
+    $turnTimeoutSeconds = isset($input['turn_timeout_seconds']) ? (int) $input['turn_timeout_seconds'] : 0;
+
+    if ($turnTimeoutSeconds < 0) {
+        $turnTimeoutSeconds = 0;
+    }
     if ($opponentId <= 0 || count($questions) === 0) {
         json_out(['message' => 'opponent_id and questions are required'], 400);
     }
+
     $challengerId = (int) $tokenPayload['user_id'];
-    $stmt = $pdo->prepare('INSERT INTO multiplayer_battles (challenger_id, opponent_id, question_count, questions) VALUES (?, ?, ?, ?)');
-    $stmt->execute([$challengerId, $opponentId, $questionCount, json_encode($questions, JSON_UNESCAPED_UNICODE)]);
+
+    // Randomize first turn for question 0
+    $turnSide = random_int(0, 1); // 0 challenger, 1 opponent
+    $turnStartedAtMs = (int) floor(microtime(true) * 1000);
+
+    // Insert only columns that exist in the current DB schema.
+    // Your current multiplayer_battles table (per your paste) contains only legacy columns.
+    $stmt = $pdo->prepare('
+        INSERT INTO multiplayer_battles
+        (challenger_id, opponent_id, question_count, questions)
+        VALUES (?, ?, ?, ?)
+    ');
+    $stmt->execute([
+        $challengerId,
+        $opponentId,
+        $questionCount,
+        json_encode($questions, JSON_UNESCAPED_UNICODE),
+    ]);
+
     $battleId = (int) $pdo->lastInsertId();
     json_out(['battle_id' => $battleId], 201);
 }

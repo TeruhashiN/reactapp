@@ -18,21 +18,39 @@ type AnswerRecord = {
 const OPTION_LETTERS = ["A", "B", "C", "D"] as const;
 type ToneType = OscillatorType;
 
-function playTone(freq: number, duration: number, type?: ToneType, vol?: number) {
+function playTone(
+  freq: number,
+  duration: number,
+  type?: ToneType,
+  vol?: number,
+) {
   try {
-    const w = window as any;
-    const ctx = new (w.AudioContext || w.webkitAudioContext)();
+    const w = window as Window &
+      typeof globalThis & {
+        AudioContext?: typeof AudioContext;
+        webkitAudioContext?: typeof AudioContext;
+      };
+
+    const Ctx = w.AudioContext ?? w.webkitAudioContext;
+    if (!Ctx) return;
+
+    const ctx = new Ctx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type ?? "sine";
     osc.frequency.value = freq;
     gain.gain.value = vol ?? 0.1;
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      ctx.currentTime + duration / 1000,
+    );
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + duration / 1000);
-  } catch {}
+  } catch {
+    // ignore audio errors
+  }
 }
 
 async function fetchBestForLevel(level: number): Promise<number> {
@@ -43,8 +61,10 @@ async function fetchBestForLevel(level: number): Promise<number> {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return 0;
-    const data = await res.json();
-    const entry = data.scores.find((s: { level: number }) => s.level === level);
+    const data: unknown = await res.json();
+    const entry = (
+      data as { scores?: Array<{ level: number; best_score: number }> }
+    ).scores?.find((s) => s.level === level);
     return entry?.best_score ?? 0;
   } catch {
     return 0;
@@ -98,13 +118,11 @@ export default function QuizMode() {
   const handleSelectRef = useRef<(opt: string) => void>(() => {});
   const handleNextRef = useRef<() => void>(() => {});
 
-   const fetchQuestions = useCallback(async () => {
+  const fetchQuestions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/quiz/questions?level=${level}&limit=25`,
-      );
+      const res = await fetch(`/api/quiz/questions?level=${level}&limit=25`);
       if (!res.ok) throw new Error("Failed to fetch questions");
       const data = await res.json();
       setQuestions(data.questions || []);
@@ -133,7 +151,9 @@ export default function QuizMode() {
         return;
       }
 
-      const idx = OPTION_LETTERS.indexOf(key as any);
+      const idx = OPTION_LETTERS.indexOf(
+        key as (typeof OPTION_LETTERS)[number],
+      );
       if (idx >= 0 && idx < (questions[current]?.options.length ?? 0)) {
         if (pressedKeys.current.has(key)) return;
         pressedKeys.current.add(key);
@@ -280,7 +300,9 @@ export default function QuizMode() {
           <div style={s.card}>
             <div style={s.stripe} />
             <div style={s.cardBody}>
-              <p style={{ textAlign: "center", color: "#888780", fontSize: 14 }}>
+              <p
+                style={{ textAlign: "center", color: "#888780", fontSize: 14 }}
+              >
                 Loading questions…
               </p>
             </div>
@@ -386,7 +408,9 @@ export default function QuizMode() {
                   <div style={s.statLabel}>Wrong</div>
                 </div>
                 <div style={{ ...s.statCard }}>
-                  <div style={{ ...s.statVal, color: "#534AB7" }}>{bestScore}</div>
+                  <div style={{ ...s.statVal, color: "#534AB7" }}>
+                    {bestScore}
+                  </div>
                   <div style={s.statLabel}>Best score</div>
                 </div>
               </div>
@@ -409,7 +433,9 @@ export default function QuizMode() {
                         <div style={s.ansWord}>{a.word}</div>
                         <div style={s.ansDetail}>
                           {a.ok ? (
-                            <span style={{ color: "#0F6E56" }}>{a.correct}</span>
+                            <span style={{ color: "#0F6E56" }}>
+                              {a.correct}
+                            </span>
                           ) : (
                             <>
                               <span
@@ -421,7 +447,9 @@ export default function QuizMode() {
                                 {chosenText}
                               </span>
                               {" → "}
-                              <span style={{ color: "#0F6E56" }}>{a.correct}</span>
+                              <span style={{ color: "#0F6E56" }}>
+                                {a.correct}
+                              </span>
                             </>
                           )}
                         </div>

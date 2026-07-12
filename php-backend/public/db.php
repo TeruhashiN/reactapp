@@ -19,12 +19,26 @@ CREATE TABLE IF NOT EXISTS multiplayer_battles (
     opponent_id INT NULL,
     question_count INT NOT NULL,
     questions JSON NOT NULL,
+
     challenger_score INT NOT NULL DEFAULT 0,
     opponent_score INT NOT NULL DEFAULT 0,
+
+    -- legacy per-player pointers (will be ignored by new two-turn model)
     challenger_current_q INT NOT NULL DEFAULT 0,
     opponent_current_q INT NOT NULL DEFAULT 0,
     challenger_finished TINYINT NOT NULL DEFAULT 0,
     opponent_finished TINYINT NOT NULL DEFAULT 0,
+
+    -- two-turn per question model
+    shared_current_q INT NOT NULL DEFAULT 0, -- question index shared by both players
+    turn_side TINYINT NOT NULL DEFAULT 0,      -- 0 = challenger turn, 1 = opponent turn
+    challenger_answered_current_q TINYINT NOT NULL DEFAULT 0,
+    opponent_answered_current_q TINYINT NOT NULL DEFAULT 0,
+
+    -- turn-based timer
+    turn_timeout_seconds INT NOT NULL DEFAULT 0,
+    turn_started_at_ms BIGINT NOT NULL DEFAULT 0,
+
     status ENUM('waiting','in_progress','completed') NOT NULL DEFAULT 'waiting',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -99,3 +113,4 @@ function get_total_score(PDO $pdo, int $userId): int {
     $total = isset($row['total']) ? (int)$row['total'] : 0;
     return $total;
 }
+
