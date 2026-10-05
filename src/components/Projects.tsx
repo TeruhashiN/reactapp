@@ -17,6 +17,7 @@ const Projects: React.FC = () => {
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotAvailableModal, setShowNotAvailableModal] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const handleProjectClick = (project: Project) => {
     setSelectedProject(project);
@@ -72,14 +73,16 @@ const Projects: React.FC = () => {
     
     .carousel-control-prev-icon,
     .carousel-control-next-icon {
-      background-color: rgba(0, 0, 0, 0.7);
+      background-color: rgba(15, 23, 42, 0.75);
       border-radius: 50%;
-      padding: 20px;
+      padding: 14px;
+      background-size: 55%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
     }
     
     .carousel-control-prev:hover .carousel-control-prev-icon,
     .carousel-control-next:hover .carousel-control-next-icon {
-      background-color: rgba(0, 0, 0, 0.9);
+      background-color: rgba(15, 23, 42, 0.95);
     }
     
     .carousel-indicators button {
@@ -291,48 +294,59 @@ const Projects: React.FC = () => {
             className="modal fade show d-block"
             tabIndex={-1}
             role="dialog"
-            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+            style={{ backgroundColor: "rgba(0,0,0,0.65)", zIndex: 1055 }}
             onClick={handleCloseModal}
           >
             <div
-              className="modal-dialog modal-lg"
+              className="modal-dialog modal-dialog-centered"
               role="document"
+              style={{ maxWidth: "760px", width: "95%" }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">{selectedProject.title}</h5>
+              <div className="modal-content shadow-lg border-0">
+                <div className="modal-header py-3 px-4 bg-light border-bottom">
+                  <h5 className="modal-title fw-bold fs-5 text-dark mb-0">{selectedProject.title}</h5>
                   <button
                     type="button"
                     className="btn-close"
                     onClick={handleCloseModal}
+                    aria-label="Close"
                   ></button>
                 </div>
-                <div className="modal-body">
+                <div className="modal-body p-3 p-md-4">
                   {/* Custom Carousel */}
                   <div
-                    className="carousel slide position-relative"
+                    className="carousel slide position-relative rounded overflow-hidden border shadow-sm"
                     style={{ backgroundColor: "#f8f9fa" }}
                   >
-                    {/* Carousel Indicators */}
-                    <div className="carousel-indicators">
-                      {selectedProject.images.map(
-                        (_: string, imgIndex: number) => (
-                          <button
-                            key={imgIndex}
-                            type="button"
-                            onClick={() => goToSlide(imgIndex)}
-                            className={
-                              imgIndex === currentSlide ? "active" : ""
-                            }
-                            aria-current={
-                              imgIndex === currentSlide ? "true" : "false"
-                            }
-                            aria-label={`Slide ${imgIndex + 1}`}
-                          ></button>
-                        ),
-                      )}
+                    {/* Badge / Slide Counter */}
+                    <div
+                      className="position-absolute top-0 start-0 m-2 px-2 py-1 rounded text-white"
+                      style={{
+                        backgroundColor: "rgba(15, 23, 42, 0.75)",
+                        fontSize: "0.75rem",
+                        zIndex: 10,
+                      }}
+                    >
+                      {currentSlide + 1} / {selectedProject.images.length}
                     </div>
+
+                    {/* Fullscreen Expand Button */}
+                    <button
+                      type="button"
+                      className="btn btn-sm position-absolute top-0 end-0 m-2 d-flex align-items-center gap-1 text-white border-0"
+                      style={{
+                        backgroundColor: "rgba(15, 23, 42, 0.75)",
+                        fontSize: "0.75rem",
+                        zIndex: 10,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setLightboxImage(selectedProject.images[currentSlide])}
+                      title="View full resolution"
+                    >
+                      <i className="fas fa-expand"></i>
+                      <span>Fullscreen</span>
+                    </button>
 
                     {/* Carousel Inner */}
                     <div className="carousel-inner">
@@ -343,15 +357,19 @@ const Projects: React.FC = () => {
                             className={`carousel-item ${
                               imgIndex === currentSlide ? "active" : ""
                             }`}
+                            onClick={() => setLightboxImage(img)}
+                            style={{ cursor: "zoom-in" }}
+                            title="Click to view full image"
                           >
                             <img
                               src={img}
                               className="d-block w-100"
                               alt={`Slide ${imgIndex + 1}`}
                               style={{
-                                height: "300px",
+                                height: "450px",
                                 objectFit: "contain",
                                 objectPosition: "center",
+                                padding: "4px",
                               }}
                             />
                           </div>
@@ -360,75 +378,109 @@ const Projects: React.FC = () => {
                     </div>
 
                     {/* Carousel Controls */}
-                    <button
-                      className="carousel-control-prev"
-                      type="button"
-                      onClick={prevSlide}
-                    >
-                      <span
-                        className="carousel-control-prev-icon"
-                        aria-hidden="true"
-                      ></span>
-                      <span className="visually-hidden">Previous</span>
-                    </button>
-                    <button
-                      className="carousel-control-next"
-                      type="button"
-                      onClick={nextSlide}
-                    >
-                      <span
-                        className="carousel-control-next-icon"
-                        aria-hidden="true"
-                      ></span>
-                      <span className="visually-hidden">Next</span>
-                    </button>
-                  </div>
-
-                  {/* Description */}
-                  <p className="mt-3">{selectedProject.description}</p>
-
-                  {/* Details (Technologies) */}
-                  <h6>Technologies:</h6>
-                  <div className="mb-3">
-                    {selectedProject.technologies.map(
-                      (tech: string, techIndex: number) => (
-                        <span
-                          key={techIndex}
-                          className="badge bg-secondary me-1 mb-1"
+                    {selectedProject.images.length > 1 && (
+                      <>
+                        <button
+                          className="carousel-control-prev"
+                          type="button"
+                          onClick={prevSlide}
+                          style={{ width: "65px" }}
                         >
-                          {tech}
-                        </span>
-                      ),
+                          <span
+                            className="carousel-control-prev-icon"
+                            aria-hidden="true"
+                          ></span>
+                          <span className="visually-hidden">Previous</span>
+                        </button>
+                        <button
+                          className="carousel-control-next"
+                          type="button"
+                          onClick={nextSlide}
+                          style={{ width: "65px" }}
+                        >
+                          <span
+                            className="carousel-control-next-icon"
+                            aria-hidden="true"
+                          ></span>
+                          <span className="visually-hidden">Next</span>
+                        </button>
+                      </>
                     )}
                   </div>
 
-                  {/* Collaboration */}
-                  <h6>Collaboration:</h6>
-                  <p>{selectedProject.collaboration}</p>
+                  {/* Thumbnail Selector Strip */}
+                  {selectedProject.images.length > 1 && (
+                    <div className="d-flex justify-content-center gap-2 mt-3 flex-wrap">
+                      {selectedProject.images.map((thumb: string, tIdx: number) => (
+                        <img
+                          key={tIdx}
+                          src={thumb}
+                          alt={`Thumbnail ${tIdx + 1}`}
+                          onClick={() => goToSlide(tIdx)}
+                          className="rounded"
+                          style={{
+                            width: "75px",
+                            height: "48px",
+                            objectFit: "cover",
+                            cursor: "pointer",
+                            border: currentSlide === tIdx ? "2px solid #0d6efd" : "1px solid #ced4da",
+                            opacity: currentSlide === tIdx ? 1 : 0.6,
+                            transition: "all 0.2s ease",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  <p className="mt-4 fs-6 text-secondary">{selectedProject.description}</p>
+
+                  <div className="row mt-3">
+                    <div className="col-md-6 mb-3">
+                      <h6 className="fw-bold text-dark">Technologies:</h6>
+                      <div className="d-flex flex-wrap gap-1">
+                        {selectedProject.technologies.map(
+                          (tech: string, techIndex: number) => (
+                            <span
+                              key={techIndex}
+                              className="badge bg-secondary"
+                            >
+                              {tech}
+                            </span>
+                          ),
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="col-md-6 mb-3">
+                      <h6 className="fw-bold text-dark">Collaboration:</h6>
+                      <p className="mb-0 text-muted">{selectedProject.collaboration}</p>
+                    </div>
+                  </div>
 
                   {/* Links */}
-                  <div>
+                  <div className="mt-3 pt-3 border-top d-flex gap-2">
                     <a
                       href={selectedProject.liveUrl}
-                      className="btn btn-primary me-2"
+                      className="btn btn-primary px-4"
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) =>
                         handleLinkClick(e, selectedProject.liveUrl)
                       }
                     >
-                      Live Demo
+                      <i className="fas fa-external-link-alt me-1"></i> Live Demo
                     </a>
                     <a
                       href={selectedProject.githubUrl}
-                      className="btn btn-outline-secondary"
+                      className="btn btn-outline-secondary px-4"
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) =>
                         handleLinkClick(e, selectedProject.githubUrl)
                       }
                     >
-                      GitHub
+                      <i className="fab fa-github me-1"></i> GitHub
                     </a>
                   </div>
                 </div>
@@ -472,6 +524,52 @@ const Projects: React.FC = () => {
                     Close
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fullscreen Lightbox Modal */}
+        {lightboxImage && (
+          <div
+            className="modal fade show d-block"
+            tabIndex={-1}
+            role="dialog"
+            style={{
+              backgroundColor: "rgba(10, 15, 30, 0.95)",
+              zIndex: 1065,
+            }}
+            onClick={() => setLightboxImage(null)}
+          >
+            <div
+              className="d-flex flex-column justify-content-center align-items-center h-100 p-2 p-md-4"
+              style={{ position: "relative" }}
+            >
+              <button
+                type="button"
+                className="btn-close btn-close-white position-absolute top-0 end-0 m-3 m-md-4"
+                style={{ zIndex: 1070, fontSize: "1.2rem" }}
+                onClick={() => setLightboxImage(null)}
+                aria-label="Close"
+              ></button>
+              <img
+                src={lightboxImage}
+                alt="Enlarged project preview"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  maxWidth: "96vw",
+                  maxHeight: "90vh",
+                  objectFit: "contain",
+                  boxShadow: "0 10px 40px rgba(0,0,0,0.8)",
+                  borderRadius: "8px",
+                  backgroundColor: "#0f172a",
+                }}
+              />
+              <div
+                className="text-white-50 mt-2 text-center"
+                style={{ fontSize: "0.75rem" }}
+              >
+                Click outside the image or the close button to return
               </div>
             </div>
           </div>

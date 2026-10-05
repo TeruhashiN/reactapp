@@ -91,9 +91,16 @@ const Header: React.FC = () => {
               </div>
 
               <img
-                src="/images/profileDPs.jpg"
+                src={`${(import.meta.env.BASE_URL || "/").replace(/\/+$/, "")}/images/profileDPs.jpg`}
                 alt="Profile"
                 className="small-profile shadow"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.dataset.triedFallback) {
+                    target.dataset.triedFallback = "true";
+                    target.src = `${(import.meta.env.BASE_URL || "/").replace(/\/+$/, "")}/images/profileDP.jpg`;
+                  }
+                }}
               />
             </div>
           </div>

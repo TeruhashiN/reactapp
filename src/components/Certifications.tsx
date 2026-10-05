@@ -6,7 +6,7 @@ const Certifications: React.FC = () => {
       title: "ICT Industry Masterclass in Python Programming",
       issuer: "Huawei",
       date: "May 2022",
-      image: "/images/huaweidp.png",
+      image: "./images/huaweidp.png",
       verificationUrl:
         "https://drive.google.com/file/d/1TiTXtVK-iYshNX-Qy21FASenGqA1InUy/view?usp=sharing",
     },

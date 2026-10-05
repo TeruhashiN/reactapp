@@ -7,6 +7,102 @@ const Experience: React.FC = () => {
         <h2 className="text-center mb-5">Professional Experience</h2>
         <div className="row">
           <div className="col-12">
+            {/* Experience Item – Viloxiti */}
+            <div className="section-border mb-4">
+              <div className="row">
+                <div className="col-md-8">
+                  <h5 className="card-title">PHP Developer | Software Engineer</h5>
+                  <h6 className="text-primary">
+                    Viloxiti | August 2026 – Present
+                  </h6>
+
+                  <ul className="mt-3">
+                    <li>
+                      Developed and maintained a PHP-based logistics management system, implementing and improving features for shipment and customer operations.
+                    </li>
+                    <li>
+                      Learned and implemented workflow automation using n8n, integrating automated processes to reduce manual tasks.
+                    </li>
+                    <li>
+                      Gained hands-on experience working with an existing production-scale codebase, including database changes, debugging, testing, and feature development.
+                    </li>
+                    <li>
+                      Designed and executed MySQL database schema updates, migrations, and query optimizations to ensure seamless data consistency for shipment operations.
+                    </li>
+                    <li>
+                      Integrated RESTful APIs and automated webhook triggers to connect third-party tracking services and customer notification workflows.
+                    </li>
+                    <li>
+                      Performed thorough debugging, root cause analysis, and quality assurance testing across complex workflows to improve overall platform stability.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="col-md-4">
+                  <span className="badge bg-success mb-2 me-1">PHP</span>
+                  <span className="badge bg-success mb-2 me-1">MySQL</span>
+                  <span className="badge bg-success mb-2 me-1">n8n</span>
+                  <span className="badge bg-success mb-2 me-1">Workflow Automation</span>
+                  <span className="badge bg-success mb-2 me-1">Logistics Systems</span>
+                  <span className="badge bg-success mb-2 me-1">REST APIs</span>
+                  <span className="badge bg-success mb-2 me-1">Debugging & Testing</span>
+                  <span className="badge bg-success mb-2 me-1">Git</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Experience Item – YSR */}
+            <div className="section-border mb-4">
+              <div className="row">
+                <div className="col-md-8">
+                  <h5 className="card-title">Medical Auction Research Specialist</h5>
+                  <h6 className="text-primary">
+                    YSR | July 2026 – Present
+                  </h6>
+                  <h6 className="text-primary">
+                    Freelance (United States · Remote)
+                  </h6>
+
+                  <ul className="mt-3">
+                    <li>
+                      Conduct research on U.S. medical equipment auctions to identify surplus medical devices matching client inventory requirements.
+                    </li>
+                    <li>
+                      Source and verify used medical equipment based on specific models, configurations, and condition requirements.
+                    </li>
+                    <li>
+                      Maintain and update inventory tracking spreadsheets with auction listings, pricing, and bidding deadlines.
+                    </li>
+                    <li>
+                      Research and identify Philippine medical equipment distributors, brokers, and resellers for potential business partnerships.
+                    </li>
+                    <li>
+                      Perform B2B lead generation by collecting company contact information and conducting email outreach.
+                    </li>
+                    <li>
+                      Utilize AI tools, advanced search operators, and online databases to improve research efficiency and data accuracy.
+                    </li>
+                    <li>
+                      Verify equipment specifications, model numbers, and technical configurations before submission.
+                    </li>
+                    <li>
+                      Monitor auction schedules and provide regular updates on newly available inventory and expiring listings.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="col-md-4">
+                  <span className="badge bg-success mb-2 me-1">Market Research</span>
+                  <span className="badge bg-success mb-2 me-1">Medical Devices</span>
+                  <span className="badge bg-success mb-2 me-1">B2B Lead Generation</span>
+                  <span className="badge bg-success mb-2 me-1">Inventory Tracking</span>
+                  <span className="badge bg-success mb-2 me-1">Data Verification</span>
+                  <span className="badge bg-success mb-2 me-1">AI Tools</span>
+                  <span className="badge bg-success mb-2 me-1">Email Outreach</span>
+                </div>
+              </div>
+            </div>
+
             {/* Experience Item 1 */}
             <div className="section-border mb-4">
               <div className="row">

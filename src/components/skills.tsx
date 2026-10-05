@@ -72,6 +72,9 @@ const Skills: React.FC = () => {
                       MongoDB
                     </span>
                     <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
+                      MySQL
+                    </span>
+                    <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
                       Kotlin
                     </span>
                   </div>
@@ -127,6 +130,9 @@ const Skills: React.FC = () => {
                     </span>
                     <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
                       Integromat
+                    </span>
+                    <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
+                      n8n
                     </span>
                     <span className="d-inline-block bg-light text-dark px-2 py-1 rounded mb-2 me-1 fs-5">
                       Airtable
